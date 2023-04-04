@@ -1,0 +1,36 @@
+{
+    "title": "Bingo 10",
+    "subtitle": "The Thunderdome",
+    "welcome_message": "Hi <rsn>, let's recape what you accomplished!",
+    "exit_message": "We hope to see you again soon!",
+    "teams": [
+        {
+            "name": "Zulrah Zoomers",
+            "members": [
+                "R elate",
+                "Chackram",
+                "DaMan2600"
+            ]
+        },
+        {
+            "name": "Bandos Boomers",
+            "members": [
+                "philistine1",
+                "Verrtus"
+            ]
+        },
+        {
+            "name": "Corp Coomers",
+            "members": [
+                "Conewolf",
+                "Guccifi"
+            ]
+        },
+        {
+            "name": "Dharok Dilfs",
+            "members": [
+                "Longclaw700"
+            ]
+        }
+    ]
+}
