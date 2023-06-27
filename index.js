@@ -13,6 +13,13 @@ let x = join(__dirname, 'resources', 'RuneScape-Fonts', 'ttf', 'RuneScape-Quill.
 console.log(x)
 GlobalFonts.registerFromPath(x, 'RuneScape-Quill')
 
+const Colors = {
+    Yellow: '#ffde00',
+    White: '#ffffff',
+    Green: '#3ad212',
+    Orange: '#ffae00',
+}
+
 async function statsSetup(isAfterEvent) {
     // make sure all the folders are setup correctly
     const parent_folder_name = 'stats';
@@ -65,27 +72,59 @@ function createImages() {
         for (let playerIndex = 0; playerIndex < team.members.length; playerIndex++) {
             const player = team.members[playerIndex];
             // console.log(player);
-            createImage(player, team.name);
+            createImage(team.name, player);
         }
     }
 }
 
-async function createImage(rsn, team_name, stats_pre, stats_post) {
-    // subtract stats_pre from stats_post to get stats_delta
+async function createImage(team_name, rsn, destination = `./images/${team_name}/${rsn}.png`) {
+    // statsDelta should be the result from a call to compareStats
+    const statsDelta = await compareStats(team_name, rsn)
 
     // canvas setup
-    const canvas = Canvas.createCanvas(700, 250);
+    const width = 1080
+    const height = 1920
+    const canvas = Canvas.createCanvas(width, height);
     const context = canvas.getContext('2d');
     const background = await Canvas.loadImage('./resources/background.png');
     context.drawImage(background, 0, 0, canvas.width, canvas.height);
 
+    // helper functions
+    async function fillTextDropShadow(ctx, text, x, y, colorCode, shadowDistance = 5) {
+        // Draw the shadow first
+        ctx.fillStyle = '#000000';
+        ctx.fillText(text, x - shadowDistance, y + shadowDistance);
+
+        // Then draw the actual text
+        ctx.fillStyle = colorCode;
+        ctx.fillText(text, x, y)
+        // console.log('Success');
+    }
+
+    async function drawSkillElement(ctx, skill, xp, x, y) {
+        const skillImage = await Canvas.loadImage(`./resources/skills/${skill}.png`)
+        ctx.drawImage(skillImage, x, y)
+        fillTextDropShadow(ctx, xp.toLocaleString(), x + 20, y, Colors.Green)
+    }
+
     // title card
-    // context.font = '60px Arial';
-    context.font = '60px RuneScape-Quill'
-    context.fillStyle = '#ffffff';
-    context.fillText(rsn, 10, 50);
+    let titleOrigin = { x: context.canvas.width / 2, y: 50 };
+    let subtitleOrigin = { x: titleOrigin.x, y: titleOrigin.y + 100 };
+    let welcome_messageOrigin = { x: titleOrigin.x, y: subtitleOrigin.y + 85 };
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.font = '143px RuneScape-Quill';
+
+    fillTextDropShadow(context, config.title, titleOrigin.x, titleOrigin.y, Colors.Yellow);
+    fillTextDropShadow(context, config.subtitle, subtitleOrigin.x, subtitleOrigin.y, Colors.Yellow);
+
+    context.font = '49px RuneScape-Quill';
+    const welcome_message = config.welcome_message.replace('<rsn>', rsn);
+    fillTextDropShadow(context, welcome_message, welcome_messageOrigin.x, welcome_messageOrigin.y, Colors.White);
 
     // skills card
+    console.log(statsDelta["skills"]['hitpoints']['xp'].toLocaleString());
+    drawSkillElement(context, 'hitpoints', statsDelta["skills"]['hitpoints']['xp'], context.canvas.width / 2, 150);
 
     // bosses card
 
@@ -102,13 +141,14 @@ async function createImage(rsn, team_name, stats_pre, stats_post) {
     } catch (err) {
         console.error(err);
     }
-    await promises.writeFile(`./images/${team_name}/${rsn}.png`, pngData);
+    // await promises.writeFile(`./images/${team_name}/${rsn}.png`, pngData);
+    await promises.writeFile(destination, pngData)
 }
 
 async function fetchOldStats(teamName, playerName) {
     // Fetch profile from JSON file stored locally
     //const profile = import(`./stats/before_event/${teamName}/${playerName}.json`)
-    console.log("Reading file : " , `./stats/before_event/${teamName}/${playerName}.json`);
+    console.log("Reading file : ", `./stats/before_event/${teamName}/${playerName}.json`);
     var profile = JSON.parse(readFileSync(`./stats/before_event/${teamName}/${playerName}.json`, 'utf8'));
 
     return profile;
@@ -124,23 +164,32 @@ async function fetchNewStats(playerName) {
     return profile;
 }
 
+async function fetchCachedStats(teamName, playerName, beforeOrAfter) {
+    // Fetch profile from JSON file stored locally
+    let statsFile = `./stats/${beforeOrAfter}/${teamName}/${playerName}.json`
+    let profile = JSON.parse(readFileSync(statsFile), 'utf8')
+    return profile
+}
+
 async function compareStats(teamName, playerName) {
     // Fetch the two profiles and compare them
-    const oldProfile = await fetchOldStats(teamName, playerName);
-    const newProfile = await fetchNewStats(playerName);
+    // const oldProfile = await fetchOldStats(teamName, playerName);
+    // const newProfile = await fetchNewStats(playerName);
+    const oldProfile = await fetchCachedStats(teamName, playerName, 'before_event');
+    const newProfile = await fetchCachedStats(teamName, playerName, 'after_event')
     // Create a new object to store the differences
     const diff = {};
 
     // Loop through the new profile and compare to the old profile
     for (const key of Object.keys(newProfile)) {
-        for(const elem of Object.keys(newProfile[key])){
+        for (const elem of Object.keys(newProfile[key])) {
             //console.log(">>comparator.js@compareStats: (lvl 2 forloop)", "Key : ", key, "Element : ", elem);
             diff[key] = oldProfile[key]; //Setting up the output object
-            for(const nestedKey in oldProfile[key][elem]){
+            for (const nestedKey in oldProfile[key][elem]) {
                 diff[key][elem] = oldProfile[key][elem]; //Setting up the output object
                 //console.log(">>comparator.js@compareStats: (lvl 3 forloop) ","Nested key : ", nestedKey);
 
-                if(oldProfile[key][elem][nestedKey] !== newProfile[key][elem][nestedKey]){
+                if (oldProfile[key][elem][nestedKey] !== newProfile[key][elem][nestedKey]) {
                     //Value is different, add the difference to the diff object
                     diff[key][elem][nestedKey] = newProfile[key][elem][nestedKey] - oldProfile[key][elem][nestedKey];
                 } else {
@@ -154,9 +203,14 @@ async function compareStats(teamName, playerName) {
     return diff;
 }
 
-const output = await compareStats('Zulrah Zoomers' , 'R elate')
-console.log(output)
-// createImages();
-//statsSetup(0);
-createImages();
-// statsSetup(0);
+// const output = await compareStats('Zulrah Zoomers', 'R elate')
+// console.log(output)
+// console.log(typeof output["skills"])
+// const test = output["skills"]
+// delete test[Object.keys(test)[0]];
+// const totalXp = Object.values(test).reduce((sum, obj) => sum + obj.xp, 0);
+// console.log(totalXp.toLocaleString());
+createImage('Zulrah Zoomers', 'R elate', 'test1.png')
+
+
+// statsSetup(true);
