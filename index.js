@@ -1,9 +1,17 @@
 import { getHiscores } from 'osrs-wrapper';
 import config from './config.json' assert { type: "json" };
-import Canvas from '@napi-rs/canvas';
+
+import Canvas, { GlobalFonts } from '@napi-rs/canvas';
 import { promises, existsSync, mkdirSync, readFileSync } from 'fs';
-import path, { join } from 'path'
+import path, { join, dirname } from 'path'
+import { fileURLToPath } from 'url';
 import { profile } from 'console';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+let x = join(__dirname, 'resources', 'RuneScape-Fonts', 'ttf', 'RuneScape-Quill.ttf')
+console.log(x)
+GlobalFonts.registerFromPath(x, 'RuneScape-Quill')
 
 async function statsSetup(isAfterEvent) {
     // make sure all the folders are setup correctly
@@ -73,7 +81,7 @@ async function createImage(rsn, team_name, stats_pre, stats_post) {
 
     // title card
     // context.font = '60px Arial';
-    context.font = '60px Arial'
+    context.font = '60px RuneScape-Quill'
     context.fillStyle = '#ffffff';
     context.fillText(rsn, 10, 50);
 
@@ -96,7 +104,6 @@ async function createImage(rsn, team_name, stats_pre, stats_post) {
     }
     await promises.writeFile(`./images/${team_name}/${rsn}.png`, pngData);
 }
-
 
 async function fetchOldStats(teamName, playerName) {
     // Fetch profile from JSON file stored locally
@@ -151,3 +158,5 @@ const output = await compareStats('Zulrah Zoomers' , 'R elate')
 console.log(output)
 // createImages();
 //statsSetup(0);
+createImages();
+// statsSetup(0);
