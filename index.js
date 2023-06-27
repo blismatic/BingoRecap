@@ -1,9 +1,11 @@
 import { getHiscores } from 'osrs-wrapper';
 import config from './config.json' assert { type: "json" };
+
 import Canvas, { GlobalFonts } from '@napi-rs/canvas';
-import { promises, existsSync, mkdirSync } from 'fs';
+import { promises, existsSync, mkdirSync, readFileSync } from 'fs';
 import path, { join, dirname } from 'path'
 import { fileURLToPath } from 'url';
+import { profile } from 'console';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -55,7 +57,7 @@ function createImages() {
     // if it doesn't already exist...
     // make a folder in ./results/ for each team, with the name of the folder being the name of the team
 
-    // for each 
+    // for each
     // createImage('R elate', 'Zulrah Zoomers');
     for (let teamIndex = 0; teamIndex < config.teams.length; teamIndex++) {
         const team = config.teams[teamIndex];
@@ -103,5 +105,58 @@ async function createImage(rsn, team_name, stats_pre, stats_post) {
     await promises.writeFile(`./images/${team_name}/${rsn}.png`, pngData);
 }
 
+async function fetchOldStats(teamName, playerName) {
+    // Fetch profile from JSON file stored locally
+    //const profile = import(`./stats/before_event/${teamName}/${playerName}.json`)
+    console.log("Reading file : " , `./stats/before_event/${teamName}/${playerName}.json`);
+    var profile = JSON.parse(readFileSync(`./stats/before_event/${teamName}/${playerName}.json`, 'utf8'));
+
+    return profile;
+}
+
+async function fetchNewStats(playerName) {
+    // Fetch profile using the OSRS Hiscores API
+    //const response = await fetch(`${URI}${playerName}`) // Actual API call
+
+    // Fetch profile using the OSRS Wrapper
+    const profile = await getHiscores(playerName); // Use this line with the wrapper
+    console.log(profile);
+    return profile;
+}
+
+async function compareStats(teamName, playerName) {
+    // Fetch the two profiles and compare them
+    const oldProfile = await fetchOldStats(teamName, playerName);
+    const newProfile = await fetchNewStats(playerName);
+    // Create a new object to store the differences
+    const diff = {};
+
+    // Loop through the new profile and compare to the old profile
+    for (const key of Object.keys(newProfile)) {
+        for(const elem of Object.keys(newProfile[key])){
+            //console.log(">>comparator.js@compareStats: (lvl 2 forloop)", "Key : ", key, "Element : ", elem);
+            diff[key] = oldProfile[key]; //Setting up the output object
+            for(const nestedKey in oldProfile[key][elem]){
+                diff[key][elem] = oldProfile[key][elem]; //Setting up the output object
+                //console.log(">>comparator.js@compareStats: (lvl 3 forloop) ","Nested key : ", nestedKey);
+
+                if(oldProfile[key][elem][nestedKey] !== newProfile[key][elem][nestedKey]){
+                    //Value is different, add the difference to the diff object
+                    diff[key][elem][nestedKey] = newProfile[key][elem][nestedKey] - oldProfile[key][elem][nestedKey];
+                } else {
+                    //Value is the same, add it to the diff object with a value of 0
+                    diff[key][elem][nestedKey] = 0;
+                }
+            }
+        }
+    }
+    // Return the diff object
+    return diff;
+}
+
+const output = await compareStats('Zulrah Zoomers' , 'R elate')
+console.log(output)
+// createImages();
+//statsSetup(0);
 createImages();
 // statsSetup(0);
