@@ -5,6 +5,7 @@ import { promises, existsSync, mkdirSync, readFileSync } from 'fs';
 import path, { join, dirname } from 'path'
 import { fileURLToPath } from 'url';
 import { profile } from 'console';
+import { stringify } from 'querystring';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -123,6 +124,34 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
         }
     }
 
+    async function drawClueElement(ctx, clueType, score, x, y, scale = 1) {
+        const fontSize = 60 * scale;
+        ctx.font = `${fontSize}px RuneScape-Quill`;
+        ctx.textAlign = 'left';
+        try {
+            const clueImage = await Canvas.loadImage(`./resources/clues/${clueType}.png`);
+            ctx.drawImage(clueImage, x, y, clueImage.width * scale, clueImage.height * scale);
+            const textOrigin = { x: x + (clueImage.width * scale) + 10, y: y + (clueImage.height / 2) * scale };
+            fillTextDropShadow(ctx, `+${convertToOsrsNumber(score)} kc`, textOrigin.x, textOrigin.y, Colors.Green);
+        } catch (err) {
+            console.log(`./resources/clues/${clueType}.png probably does not exist.`);
+            console.log(err);
+            process.exit(1)
+        }
+    }
+
+    function shrinkFont(ctx, message, baseSize, padding, alignment, font = 'RuneScape-Quill') {
+        // const exitMessage = config["exit_message"];
+        ctx.textAlign = alignment;
+        ctx.font = `${baseSize}px ${font}`;
+
+        while (ctx.measureText(message).width > canvas.width - padding) {
+            ctx.font = `${baseSize -= 5}px ${font}`;
+        }
+
+        return ctx.font;
+    }
+
     // ===== title card =====
     context.textAlign = 'center';
     context.textBaseline = 'middle';
@@ -149,11 +178,10 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
     const skills = statsDelta["skills"];
 
     // Skills subtitle
-    // await drawSkillElement(context, 'overall', skills['overall']["xp"], (context.canvas.width / 2) - 200, yPos);
     context.font = '60px RuneScape-Quill';
     fillTextDropShadow(context, `Total XP Gained: ${skills['overall']["xp"].toLocaleString()}`, context.canvas.width / 2, yPos, Colors.Orange);
+    delete skills[Object.keys(skills)[0]]; // remove the overall xp key, since we dont want to actually print that will all the other skills
     yPos -= 50;
-    delete skills[Object.keys(skills)[0]];
 
     // loop through the skills and make a skillElement for any that have gained xp
     const filteredSkills = {};
@@ -183,37 +211,29 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
 
     // ===== bosses card =====
     const bosses = statsDelta["bosses"];
-    // loop through the bosses and make a skillElement for any that have gained kill count
     // create a new object 'filteredBosses' that only includes the bosses that have seen an increase in kill count
     const filteredBosses = {};
     for (let key in bosses) {
         if (bosses.hasOwnProperty(key) && bosses[key]["kills"] > 0) {
             filteredBosses[key] = bosses[key];
-            // console.log('But I am here. ' + key + " " + bosses[key]["kills"]);
-        } else {
-            // console.log('I am here. ' + key + " " + bosses[key]["kills"]);
         }
     }
+
     // Bosses title
     context.textAlign = 'center';
     context.font = '116px RuneScape-Quill';
-    yPos += 150;
-    let bossesTitleOrigin = { x: titleOrigin.x, y: yPos };
+    let bossesTitleOrigin = { x: titleOrigin.x, y: yPos += 150 };
     fillTextDropShadow(context, 'Bosses', bossesTitleOrigin.x, bossesTitleOrigin.y, Colors.White);
 
     // Bosses subtitle
     context.font = '60px RuneScape-Quill';
-    yPos += 100;
     const totalBosses = Object.values(filteredBosses).reduce((sum, boss) => {
         const kills = parseInt(boss.kills, 10);
         return sum + (isNaN(kills) ? 0 : kills);
     }, 0);
-    // console.log(filteredBosses);
-    // console.log(totalBosses.toLocaleString());
-    // console.log(totalBosses);
-    fillTextDropShadow(context, `Total Bosses Killed: ${totalBosses.toLocaleString()}`, context.canvas.width / 2, yPos, Colors.Orange);
+    fillTextDropShadow(context, `Total Bosses Killed: ${totalBosses.toLocaleString()}`, context.canvas.width / 2, yPos += 100, Colors.Orange);
 
-    // for each boss in filteredBosses, create a skillElement object for them
+    // for each boss that has seen an increase in kill count, create a bossElement object for them
     yPos -= 50;
     count = 0;
     for (let boss in filteredBosses) {
@@ -236,11 +256,69 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
     }
 
     // ===== clues card =====
+    const minigames = statsDelta["minigames"];
+
+    // create a new object 'filteredClues' that only includes the clues that have seen an increase in score
+    const filteredClues = {};
+    const clueKeys = ["clueScrollsBeginner", "clueScrollsEasy", "clueScrollsMedium", "clueScrollsHard", "clueScrollsElite", "clueScrollsMaster"];
+    for (let key in minigames) {
+        if (minigames.hasOwnProperty(key) && minigames[key]["score"] > 0 && clueKeys.includes(key)) {
+            filteredClues[key] = minigames[key];
+        }
+    }
+
+    // Clues title
+    context.textAlign = 'center';
+    context.font = '116px RuneScape-Quill';
+    let cluesTitleOrigin = { x: titleOrigin.x, y: yPos += 150 };
+    fillTextDropShadow(context, 'Clues', cluesTitleOrigin.x, cluesTitleOrigin.y, Colors.White);
+
+    // Clues subtitle
+    context.font = '60px RuneScape-Quill';
+    fillTextDropShadow(context, `Total Caskets Opened: ${minigames['clueScrollsAll']["score"].toLocaleString()}`, context.canvas.width / 2, yPos += 100, Colors.Orange);
+
+    // for each clue type that has seen an increase in score, create a clueElement object for them
+    yPos -= 50;
+    count = 0;
+    for (let clueType in filteredClues) {
+        const score = filteredClues[clueType]["score"];
+
+        let xPos = 200;
+        let xOffset = 250
+        if (count % 3 == 0) {
+            yPos += 100;
+        } else if (count % 3 == 1) {
+            xPos += xOffset;
+        } else if (count % 3 == 2) {
+            xPos += xOffset * 2;
+        }
+        count++;
+
+        await drawClueElement(context, clueType, score, xPos, yPos, 0.7);
+    }
 
     // ===== exit card =====
+    const exitMessage = config["exit_message"];
+    context.textAlign = 'center';
+    context.font = '200px RuneScape-Quill';
+    context.font = shrinkFont(context, exitMessage, 100, 0, 'center', 'RuneScape-Quill');
+    // context.font = `${fontSize}px RuneScape-Quill`;
+
+    // do {
+    //     console.log('making font smaller');
+    //     context.font = `${fontSize -= 5}px RuneScape-Quill`;
+    // } while (context.measureText(exitMessage).width > canvas.width);
+
+    let exitTitleOrigin = { x: titleOrigin.x, y: yPos += 150 };
+    fillTextDropShadow(context, exitMessage, exitTitleOrigin.x, exitTitleOrigin.y, Colors.Yellow);
 
     // save image
-    // canvas.height = yPos;
+    // canvas.height = yPos += 100;
+
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    canvas.height = yPos += 100;
+    context.putImageData(imageData, 0, 0);
+
     const pngData = await canvas.encode('png');
     try {
         if (!existsSync(`./images/${team_name}`)) {
@@ -301,19 +379,22 @@ async function compareStats2(teamName, playerName) {
         for (let category in newObj) {
             for (let section in newObj[category]) {
 
-                // If there exists a category with the same name in old object...
+                // If there exists a section (attack, defence, cerberus, callisto, clueScrollsEasy, clueScrollsMedium) with the same name in old object...
                 if (Object.keys(oldObj[category]).includes(section)) {
-                    // console.log('I am here.');
-
-                    // Look at each subKey (for the "skills" category, this is "rank, level, and xp")
+                    // Look at each subKey (for the "skills" section, this is "rank, level, and xp")
                     for (let subKey in newObj[category][section]) {
+                        // If the value of the subKey is '-1' in the oldObject (meaning that the player never killed the boss), dont actually subtract it, since subtracting a negative would create a positive
+                        if (oldObj[category][section][subKey] == '-1') { continue; }
+
                         // Subtract the oldObjects value for this subKey from the current value
                         newObj[category][section][subKey] -= oldObj[category][section][subKey];
+
+                        // Turn it back into a string to stay consistent with the results from calling the osrs-wrapper api
+                        newObj[category][section][subKey] = '' + newObj[category][section][subKey];
                     }
                 }
             }
         }
-        // console.log('-----------------------');
         return newObj;
     }
 
@@ -338,8 +419,8 @@ function convertToOsrsNumber(number) {
 // const totalBosses = Object.values(test).reduce((sum, obj) => sum + obj.kills, 0);
 // console.log(totalBosses.toLocaleString());
 
-createImage('Zulrah Zoomers', 'R elate', 'test1.png')
-// createImage('Bandos Boomers', 'philistine1', 'test1.png');
+// createImage('Zulrah Zoomers', 'R elate', 'test1.png')
+createImage('Bandos Boomers', 'philistine1', 'test1.png');
 
 // console.log(convertToOsrsNumber(92882));
 
@@ -396,6 +477,5 @@ function getObjectDifference(oldObj, newObj) {
     return newObj;
 }
 
-console.log(await compareStats('Zulrah Zoomers', 'R elate'));
-console.log('-----------------------------------------------------------');
-console.log(await compareStats2('Zulrah Zoomers', 'R elate'));
+// const result = await compareStats2('Zulrah Zoomers', 'R elate')
+// console.log(result);
