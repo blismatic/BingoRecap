@@ -83,8 +83,14 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
     const height = 2500;
     const canvas = Canvas.createCanvas(width, height);
     const context = canvas.getContext('2d');
-    const background = await Canvas.loadImage('./resources/background.png');
+
+    let background = await Canvas.loadImage('./resources/decoration/background.png');
+    const pattern = context.createPattern(background, 'repeat-y');
+    context.fillStyle = pattern;
+    context.fillRect(0, 0, canvas.width, canvas.height);
     // context.drawImage(background, 0, 0, canvas.width, canvas.height);
+
+    const dividerImg = await Canvas.loadImage('./resources/decoration/divider.png');
 
     // ===== helper functions =====
     async function fillTextDropShadow(ctx, text, x, y, colorCode, shadowDistance = 5) {
@@ -168,6 +174,8 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
     const welcome_message = config.welcome_message.replace('<rsn>', rsn);
     fillTextDropShadow(context, welcome_message, welcome_messageOrigin.x, welcome_messageOrigin.y, Colors.White);
 
+    context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), welcome_messageOrigin.y + 40);
+
     // ===== skills card =====
     // Skills title
     context.font = '116px RuneScape-Quill';
@@ -179,7 +187,7 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
 
     // Skills subtitle
     context.font = '60px RuneScape-Quill';
-    fillTextDropShadow(context, `Total XP Gained: ${skills['overall']["xp"].toLocaleString()}`, context.canvas.width / 2, yPos, Colors.Orange);
+    fillTextDropShadow(context, `Total XP Gained: ${Number(skills['overall']["xp"]).toLocaleString()}`, context.canvas.width / 2, yPos, Colors.Orange);
     delete skills[Object.keys(skills)[0]]; // remove the overall xp key, since we dont want to actually print that will all the other skills
     yPos -= 50;
 
@@ -208,6 +216,8 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
 
         await drawSkillElement(context, skill, xp, xPos, yPos, 0.7);
     }
+
+    context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos + 90);
 
     // ===== bosses card =====
     const bosses = statsDelta["bosses"];
@@ -255,6 +265,8 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
         await drawBossElement(context, boss, killCount, xPos, yPos, 0.7);
     }
 
+    context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos + 90);
+
     // ===== clues card =====
     const minigames = statsDelta["minigames"];
 
@@ -275,7 +287,7 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
 
     // Clues subtitle
     context.font = '60px RuneScape-Quill';
-    fillTextDropShadow(context, `Total Caskets Opened: ${minigames['clueScrollsAll']["score"].toLocaleString()}`, context.canvas.width / 2, yPos += 100, Colors.Orange);
+    fillTextDropShadow(context, `Total Caskets Opened: ${Number(minigames['clueScrollsAll']["score"]).toLocaleString()}`, context.canvas.width / 2, yPos += 100, Colors.Orange);
 
     // for each clue type that has seen an increase in score, create a clueElement object for them
     yPos -= 50;
@@ -297,28 +309,34 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
         await drawClueElement(context, clueType, score, xPos, yPos, 0.7);
     }
 
+    context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos + 100);
+
     // ===== exit card =====
     const exitMessage = config["exit_message"];
-    context.textAlign = 'center';
-    context.font = '200px RuneScape-Quill';
-    context.font = shrinkFont(context, exitMessage, 100, 0, 'center', 'RuneScape-Quill');
-    // context.font = `${fontSize}px RuneScape-Quill`;
 
-    // do {
-    //     console.log('making font smaller');
-    //     context.font = `${fontSize -= 5}px RuneScape-Quill`;
-    // } while (context.measureText(exitMessage).width > canvas.width);
+    context.textAlign = 'center';
+    context.font = shrinkFont(context, exitMessage, 100, 100, 'center', 'RuneScape-Quill');
 
     let exitTitleOrigin = { x: titleOrigin.x, y: yPos += 150 };
     fillTextDropShadow(context, exitMessage, exitTitleOrigin.x, exitTitleOrigin.y, Colors.Yellow);
 
-    // save image
-    // canvas.height = yPos += 100;
-
+    // ===== save image =====
+    // Adjust the height of the image to make room for all the included elements.
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
     canvas.height = yPos += 100;
+
+    // const bgImage = await Canvas.loadImage('./resources/decoration/background.png');
+
+    // const pattern = context.createPattern(bgImage, 'repeat-y');
+    // context.fillStyle = pattern;
+    // context.fillRect(0, 0, canvas.width, canvas.height);
+
+    // const bgData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+    // context.putImageData(bgData, 0, 0);
     context.putImageData(imageData, 0, 0);
 
+    // actually do the saving
     const pngData = await canvas.encode('png');
     try {
         if (!existsSync(`./images/${team_name}`)) {
