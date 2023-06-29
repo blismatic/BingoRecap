@@ -64,7 +64,6 @@ function createImages() {
     // make a folder in ./results/ for each team, with the name of the folder being the name of the team
 
     // for each
-    // createImage('R elate', 'Zulrah Zoomers');
     for (let teamIndex = 0; teamIndex < config.teams.length; teamIndex++) {
         const team = config.teams[teamIndex];
         for (let playerIndex = 0; playerIndex < team.members.length; playerIndex++) {
@@ -80,7 +79,7 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
     // ===== canvas setup =====
     const width = 1080;
     // const height = 1920;
-    const height = 2500;
+    const height = 15000;
     const canvas = Canvas.createCanvas(width, height);
     const context = canvas.getContext('2d');
     let yPos = 0;
@@ -89,7 +88,6 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
     const pattern = context.createPattern(background, 'repeat-y');
     context.fillStyle = pattern;
     context.fillRect(0, 0, canvas.width, canvas.height);
-    // context.drawImage(background, 0, 0, canvas.width, canvas.height);
 
     const dividerImg = await Canvas.loadImage('./resources/decoration/divider.png');
 
@@ -103,48 +101,6 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
         ctx.fillStyle = colorCode;
         ctx.fillText(text, x, y)
         // console.log('Success');
-    }
-
-    async function drawSkillElement(ctx, skill, xp, x, y, scale = 1) {
-        const fontSize = 60 * scale;
-        ctx.font = `${fontSize}px RuneScape-Quill`;
-        ctx.textAlign = 'left';
-        const skillImage = await Canvas.loadImage(`./resources/skills/${skill}.png`);
-        ctx.drawImage(skillImage, x, y, skillImage.width * scale, skillImage.height * scale);
-        const textOrigin = { x: x + (skillImage.width * scale) + 10, y: y + (skillImage.height / 2) * scale };
-        fillTextDropShadow(ctx, `+${convertToOsrsNumber(xp)} xp`, textOrigin.x, textOrigin.y, Colors.Green);
-    }
-
-    async function drawBossElement(ctx, boss, kc, x, y, scale = 1) {
-        const fontSize = 60 * scale;
-        ctx.font = `${fontSize}px RuneScape-Quill`;
-        ctx.textAlign = 'left';
-        try {
-            const bossImage = await Canvas.loadImage(`./resources/bosses/${boss}.png`);
-            ctx.drawImage(bossImage, x, y, bossImage.width * scale, bossImage.height * scale);
-            const textOrigin = { x: x + (bossImage.width * scale) + 10, y: y + (bossImage.height / 2) * scale };
-            fillTextDropShadow(ctx, `+${convertToOsrsNumber(kc)} kc`, textOrigin.x, textOrigin.y, Colors.Green);
-        } catch (err) {
-            console.log(`./resources/bosses/${boss}.png does not exist.`);
-            console.log(err);
-            process.exit(1)
-        }
-    }
-
-    async function drawClueElement(ctx, clueType, score, x, y, scale = 1) {
-        const fontSize = 60 * scale;
-        ctx.font = `${fontSize}px RuneScape-Quill`;
-        ctx.textAlign = 'left';
-        try {
-            const clueImage = await Canvas.loadImage(`./resources/clues/${clueType}.png`);
-            ctx.drawImage(clueImage, x, y, clueImage.width * scale, clueImage.height * scale);
-            const textOrigin = { x: x + (clueImage.width * scale) + 10, y: y + (clueImage.height / 2) * scale };
-            fillTextDropShadow(ctx, `+${convertToOsrsNumber(score)} kc`, textOrigin.x, textOrigin.y, Colors.Green);
-        } catch (err) {
-            console.log(`./resources/clues/${clueType}.png probably does not exist.`);
-            console.log(err);
-            process.exit(1)
-        }
     }
 
     function shrinkFont(ctx, message, baseSize, padding, alignment, font = 'RuneScape-Quill') {
@@ -180,22 +136,46 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
         return array;
     }
 
-    async function printElements(ctx, numColumns, sortedThing, key, xPos, xOffset, yOffset, scale) {
+    async function printElements(ctx, folder, sortedThing, key, numColumns, xPos, xOffset, yOffset, scale) {
         let count = 0;
-        let modCount = 0;
         for (let item of sortedThing) {
-            for (let i = 0; i < numColumns; i++) {
+            let xPos2 = xPos;
+            for (let i = 1; i < numColumns; i++) {
                 if (count % numColumns == 0) {
                     yPos += yOffset;
-                    modCount = 0;
-                } else if (count % numColumns == modCount) {
-                    xPos += xOffset * modCount;
+                    // console.log('i am here 0');
+                } else if (count % numColumns == i) {
+                    // console.log('i am here ' + i);
+                    xPos2 += xOffset * i;
                 }
-
-                count++;
-                modCount++;
             }
-            await drawBossElement(ctx, item.name, item[key], xPos, yPos, scale);
+            count++;
+            // await drawBossElement(ctx, item.name, item[key], xPos2, yPos, scale);
+            await drawElement(ctx, folder, item.name, item[key], xPos2, yPos, scale);
+        }
+    }
+
+    async function drawElement(ctx, folder, itemName, itemKey, x, y, scale = 1) {
+        const possibleFolders = ['bosses', 'clues', 'skills'];
+        if (!possibleFolders.includes(folder)) {
+            console.log(`Sorry, I can\'t accept ${folder} as a folder name...`);
+        }
+
+        // For bosses and clues, the suffix appeneded to the number should be kc. Otherwise, xp.
+        let suffix = (folder == 'skills') ? 'xp' : 'kc';
+
+        const fontSize = 60 * scale;
+        ctx.font = `${fontSize}px RuneScape-Quill`;
+        ctx.textAlign = 'left';
+        try {
+            const image = await Canvas.loadImage(`./resources/${folder}/${itemName}.png`);
+            ctx.drawImage(image, x, y, image.width * scale, image.height * scale);
+            const textOrigin = { x: x + (image.width * scale) + 10, y: y + (image.height / 2) * scale };
+            fillTextDropShadow(ctx, `+${convertToOsrsNumber(itemKey)} ${suffix}`, textOrigin.x, textOrigin.y, Colors.Green);
+        } catch (err) {
+            console.log(`./resources/${folder}/${itemName}.png probably does not exist.`);
+            console.log(err);
+            process.exit(1)
         }
     }
 
@@ -251,7 +231,7 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
         }
         count++;
 
-        await drawSkillElement(context, skill.name, skill.xp, xPos, yPos, 0.7);
+        await drawElement(context, 'skills', skill.name, skill.xp, xPos, yPos, 0.7);
     }
     context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos + 90);
 
@@ -289,10 +269,11 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
         }
         count++;
 
-        await drawBossElement(context, boss.name, boss.kills, xPos, yPos, 0.7);
+        await drawElement(context, 'bosses', boss.name, boss.kills, xPos, yPos, 0.7);
     }
-    // await printElements(context, 4, sortedBosses, 'kills', 5, 5, 5, 0.7);
+    // await printElements(context, 'bosses', sortedBosses, 'kills', 4, 150, 200, 100, 0.7);
 
+    console.log(`yPos after printing boss elements: ${yPos}`);
     context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos + 90);
 
     // ===== clues card =====
@@ -327,9 +308,10 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
         }
         count++;
 
-        await drawClueElement(context, clueType.name, clueType.score, xPos, yPos, 0.7);
+        await drawElement(context, 'clues', clueType.name, clueType.score, xPos, yPos, 0.7);
     }
 
+    console.log(`yPos after printing clue elements: ${yPos}`);
     context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos + 100);
 
     // ===== exit card =====
@@ -341,6 +323,7 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
     let exitTitleOrigin = { x: titleOrigin.x, y: yPos += 150 };
     fillTextDropShadow(context, exitMessage, exitTitleOrigin.x, exitTitleOrigin.y, Colors.Yellow);
 
+    console.log(`yPos after printing exit card: ${yPos}`);
     // ===== save image =====
     // Adjust the height of the image to make room for all the included elements.
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
@@ -459,7 +442,7 @@ function convertToOsrsNumber(number) {
 // console.log(totalBosses.toLocaleString());
 
 // createImage('Zulrah Zoomers', 'R elate', 'test1.png');
-createImage('Zulrah Zoomers', 'DaMan2600', 'test1.png');
+createImage('Zulrah Zoomers', 'DaMan2600', 'test2.png');
 // createImage('Bandos Boomers', 'philistine1', 'test1.png');
 
 // console.log(convertToOsrsNumber(92882));
