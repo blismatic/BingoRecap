@@ -1,7 +1,7 @@
 import { getHiscores } from 'osrs-wrapper';
 import config from './config.json' assert { type: "json" };
 import Canvas, { GlobalFonts } from '@napi-rs/canvas';
-import { promises, existsSync, mkdirSync, readFileSync } from 'fs';
+import { promises, existsSync, mkdirSync, readFileSync, exists } from 'fs';
 import path, { join, dirname } from 'path'
 import { fileURLToPath } from 'url';
 
@@ -60,9 +60,17 @@ async function statsSetup(isAfterEvent) {
 
 function createImages() {
     // if it doesn't already exist...
-    // make a folder in ./results/ for each team, with the name of the folder being the name of the team
+    // make a folder in ./images/ for each team, with the name of the folder being the name of the team
+    const imagesDir = path.join(__dirname, 'images');
+    if (!existsSync(imagesDir)) { mkdirSync(imagesDir, { recursive: true }); } // create the parent 'images' folder if it does not exist.
+    for (const team of config.teams) {
+        const teamDir = path.join(imagesDir, team.name);
+        if (!existsSync(teamDir)) { mkdirSync(teamDir, { recursive: true }); } // create each teams folder if it does not exist.
+    }
 
-    // for each
+
+
+    // for each player, generate their own image
     for (let teamIndex = 0; teamIndex < config.teams.length; teamIndex++) {
         const team = config.teams[teamIndex];
         for (let playerIndex = 0; playerIndex < team.members.length; playerIndex++) {
@@ -393,7 +401,7 @@ function convertToOsrsNumber(number) {
     }
 }
 
-createImage('Zulrah Zoomers', 'DaMan2600', 'test1.png');
-// createImages()
+// createImage('Zulrah Zoomers', 'DaMan2600', 'test1.png');
+createImages()
 
 // statsSetup(true);
