@@ -158,6 +158,27 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
         return ctx.font;
     }
 
+    function sortSection(section, subKeyToSortBy, sectionKeysToInclude) {
+        if (sectionKeysToInclude === undefined) {
+            sectionKeysToInclude = Object.keys(section);
+        }
+
+        // Make a new object that only contains elements where the keyToSortBy is greater than 0.
+        const filteredSection = {};
+        for (let key in section) {
+            if (section.hasOwnProperty(key) && section[key][subKeyToSortBy] > 0 && sectionKeysToInclude.includes(key)) {
+                filteredSection[key] = section[key];
+            }
+        }
+
+        // Turn the new object into an array, and sort it by keyToSortBy in descending order.
+        let array = Object.entries(filteredSection).map(([key, value]) => ({ name: key, ...value }));
+        array.sort((a, b) => Number(b[subKeyToSortBy]) - Number(a[subKeyToSortBy]));
+
+        // Return the sorted array.
+        return array;
+    }
+
     // ===== title card =====
     context.textAlign = 'center';
     context.textBaseline = 'middle';
@@ -184,27 +205,23 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
 
     let yPos = skillsTitleOrigin.y + 100;
     const skills = statsDelta["skills"];
+    const sortedSkills = sortSection(skills, 'xp')
+    sortedSkills.shift(); // Remove the "overall" xp, since this will be calculated later
 
     // Skills subtitle
     context.font = '60px RuneScape-Quill';
-    fillTextDropShadow(context, `Total XP Gained: ${Number(skills['overall']["xp"]).toLocaleString()}`, context.canvas.width / 2, yPos, Colors.Orange);
-    delete skills[Object.keys(skills)[0]]; // remove the overall xp key, since we dont want to actually print that will all the other skills
+    const totalXp = sortedSkills.reduce((sum, skill) => {
+        return sum + Number(skill.xp);
+    }, 0);
+    fillTextDropShadow(context, `Total XP Gained: ${totalXp.toLocaleString()}`, context.canvas.width / 2, yPos, Colors.Orange);
+
     yPos -= 50;
-
-    // loop through the skills and make a skillElement for any that have gained xp
-    const filteredSkills = {};
-    for (let key in skills) {
-        if (skills.hasOwnProperty(key) && skills[key]["xp"] > 0) {
-            filteredSkills[key] = skills[key];
-        }
-    }
-
     let count = 0;
-    for (let skill in filteredSkills) {
-        const xp = skills[skill]["xp"];
+    for (let skill of sortedSkills) {
+        const xp = skill.xp;
 
         let xPos = 150;
-        let xOffset = 270
+        let xOffset = 270;
         if (count % 3 == 0) {
             yPos += 100;
         } else if (count % 3 == 1) {
@@ -214,20 +231,13 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
         }
         count++;
 
-        await drawSkillElement(context, skill, xp, xPos, yPos, 0.7);
+        await drawSkillElement(context, skill.name, skill.xp, xPos, yPos, 0.7);
     }
-
     context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos + 90);
 
     // ===== bosses card =====
     const bosses = statsDelta["bosses"];
-    // create a new object 'filteredBosses' that only includes the bosses that have seen an increase in kill count
-    const filteredBosses = {};
-    for (let key in bosses) {
-        if (bosses.hasOwnProperty(key) && bosses[key]["kills"] > 0) {
-            filteredBosses[key] = bosses[key];
-        }
-    }
+    const sortedBosses = sortSection(bosses, 'kills');
 
     // Bosses title
     context.textAlign = 'center';
@@ -237,20 +247,17 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
 
     // Bosses subtitle
     context.font = '60px RuneScape-Quill';
-    const totalBosses = Object.values(filteredBosses).reduce((sum, boss) => {
-        const kills = parseInt(boss.kills, 10);
-        return sum + (isNaN(kills) ? 0 : kills);
+    const totalBosses = sortedBosses.reduce((sum, boss) => {
+        return sum + Number(boss.kills);
     }, 0);
     fillTextDropShadow(context, `Total Bosses Killed: ${totalBosses.toLocaleString()}`, context.canvas.width / 2, yPos += 100, Colors.Orange);
 
     // for each boss that has seen an increase in kill count, create a bossElement object for them
     yPos -= 50;
     count = 0;
-    for (let boss in filteredBosses) {
-        const killCount = bosses[boss]["kills"];
-
+    for (let boss of sortedBosses) {
         let xPos = 150;
-        let xOffset = 200
+        let xOffset = 200;
         if (count % 4 == 0) {
             yPos += 100;
         } else if (count % 4 == 1) {
@@ -262,22 +269,14 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
         }
         count++;
 
-        await drawBossElement(context, boss, killCount, xPos, yPos, 0.7);
+        await drawBossElement(context, boss.name, boss.kills, xPos, yPos, 0.7);
     }
 
     context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos + 90);
 
     // ===== clues card =====
     const minigames = statsDelta["minigames"];
-
-    // create a new object 'filteredClues' that only includes the clues that have seen an increase in score
-    const filteredClues = {};
-    const clueKeys = ["clueScrollsBeginner", "clueScrollsEasy", "clueScrollsMedium", "clueScrollsHard", "clueScrollsElite", "clueScrollsMaster"];
-    for (let key in minigames) {
-        if (minigames.hasOwnProperty(key) && minigames[key]["score"] > 0 && clueKeys.includes(key)) {
-            filteredClues[key] = minigames[key];
-        }
-    }
+    const sortedClues = sortSection(minigames, 'score', ["clueScrollsBeginner", "clueScrollsEasy", "clueScrollsMedium", "clueScrollsHard", "clueScrollsElite", "clueScrollsMaster"]);
 
     // Clues title
     context.textAlign = 'center';
@@ -287,16 +286,17 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
 
     // Clues subtitle
     context.font = '60px RuneScape-Quill';
-    fillTextDropShadow(context, `Total Caskets Opened: ${Number(minigames['clueScrollsAll']["score"]).toLocaleString()}`, context.canvas.width / 2, yPos += 100, Colors.Orange);
+    const totalClues = sortedClues.reduce((sum, clueType) => {
+        return sum + Number(clueType.score);
+    }, 0);
+    fillTextDropShadow(context, `Total Caskets Opened: ${totalClues.toLocaleString()}`, context.canvas.width / 2, yPos += 100, Colors.Orange);
 
     // for each clue type that has seen an increase in score, create a clueElement object for them
     yPos -= 50;
     count = 0;
-    for (let clueType in filteredClues) {
-        const score = filteredClues[clueType]["score"];
-
+    for (let clueType of sortedClues) {
         let xPos = 200;
-        let xOffset = 250
+        let xOffset = 250;
         if (count % 3 == 0) {
             yPos += 100;
         } else if (count % 3 == 1) {
@@ -306,7 +306,7 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
         }
         count++;
 
-        await drawClueElement(context, clueType, score, xPos, yPos, 0.7);
+        await drawClueElement(context, clueType.name, clueType.score, xPos, yPos, 0.7);
     }
 
     context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos + 100);
@@ -437,8 +437,9 @@ function convertToOsrsNumber(number) {
 // const totalBosses = Object.values(test).reduce((sum, obj) => sum + obj.kills, 0);
 // console.log(totalBosses.toLocaleString());
 
-// createImage('Zulrah Zoomers', 'R elate', 'test1.png')
-createImage('Bandos Boomers', 'philistine1', 'test1.png');
+// createImage('Zulrah Zoomers', 'R elate', 'test1.png');
+createImage('Zulrah Zoomers', 'DaMan2600', 'test1.png');
+// createImage('Bandos Boomers', 'philistine1', 'test1.png');
 
 // console.log(convertToOsrsNumber(92882));
 
