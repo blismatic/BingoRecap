@@ -4,8 +4,6 @@ import Canvas, { GlobalFonts } from '@napi-rs/canvas';
 import { promises, existsSync, mkdirSync, readFileSync } from 'fs';
 import path, { join, dirname } from 'path'
 import { fileURLToPath } from 'url';
-import { profile } from 'console';
-import { stringify } from 'querystring';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -17,6 +15,7 @@ const Colors = {
     White: '#ffffff',
     Green: '#3ad212',
     Orange: '#ffae00',
+    Gray: '#c2c2c2',
 }
 
 async function statsSetup(isAfterEvent) {
@@ -74,12 +73,11 @@ function createImages() {
 }
 
 async function createImage(team_name, rsn, destination = `./images/${team_name}/${rsn}.png`) {
-    const statsDelta = await compareStats2(team_name, rsn)
+    const statsDelta = await compareStats(team_name, rsn)
 
     // ===== canvas setup =====
     const width = 1080;
-    // const height = 1920;
-    const height = 15000;
+    const height = 15000; // This is extremely large on purpose. It will be trimmed to the correct height at the end.
     const canvas = Canvas.createCanvas(width, height);
     const context = canvas.getContext('2d');
     let yPos = 0;
@@ -233,6 +231,8 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
 
         await drawElement(context, 'skills', skill.name, skill.xp, xPos, yPos, 0.7);
     }
+    // await printElements(context, 'skills', sortedSkills, 'xp', 3, 150, 270, 100, 0.7);
+
     context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos + 90);
 
     // ===== bosses card =====
@@ -273,7 +273,6 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
     }
     // await printElements(context, 'bosses', sortedBosses, 'kills', 4, 150, 200, 100, 0.7);
 
-    console.log(`yPos after printing boss elements: ${yPos}`);
     context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos + 90);
 
     // ===== clues card =====
@@ -310,34 +309,26 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
 
         await drawElement(context, 'clues', clueType.name, clueType.score, xPos, yPos, 0.7);
     }
+    // await printElements(context, 'clues', sortedClues, 'score', 3, 200, 250, 100, 0.7);
 
-    console.log(`yPos after printing clue elements: ${yPos}`);
     context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos + 100);
 
     // ===== exit card =====
     const exitMessage = config["exit_message"];
-
     context.textAlign = 'center';
-    context.font = shrinkFont(context, exitMessage, 100, 100, 'center', 'RuneScape-Quill');
-
+    context.font = shrinkFont(context, exitMessage, 100, 150, 'center', 'RuneScape-Quill');
     let exitTitleOrigin = { x: titleOrigin.x, y: yPos += 150 };
     fillTextDropShadow(context, exitMessage, exitTitleOrigin.x, exitTitleOrigin.y, Colors.Yellow);
 
-    console.log(`yPos after printing exit card: ${yPos}`);
+    const watermarkMessage = 'Generated using https://github.com/blismatic/BingoRecap, message "l.ove" on Discord with any questions'
+    context.font = shrinkFont(context, watermarkMessage, 100, 200, 'center', 'RuneScape-Quill');
+    context.globalAlpha = 0.3;
+    fillTextDropShadow(context, watermarkMessage, exitTitleOrigin.x, yPos += 80, Colors.Gray);
+
     // ===== save image =====
-    // Adjust the height of the image to make room for all the included elements.
+    // Adjust the height of the image to make it end at the correct spot.
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    canvas.height = yPos += 100;
-
-    // const bgImage = await Canvas.loadImage('./resources/decoration/background.png');
-
-    // const pattern = context.createPattern(bgImage, 'repeat-y');
-    // context.fillStyle = pattern;
-    // context.fillRect(0, 0, canvas.width, canvas.height);
-
-    // const bgData = context.getImageData(0, 0, canvas.width, canvas.height);
-
-    // context.putImageData(bgData, 0, 0);
+    canvas.height = yPos += 30;
     context.putImageData(imageData, 0, 0);
 
     // actually do the saving
@@ -361,37 +352,6 @@ async function fetchCachedStats(teamName, playerName, beforeOrAfter) {
 }
 
 async function compareStats(teamName, playerName) {
-    // Fetch the two profiles and compare them
-    const oldProfile = await fetchCachedStats(teamName, playerName, 'before_event');
-    const newProfile = await fetchCachedStats(teamName, playerName, 'after_event');
-
-    // Create a new object to store the differences
-    const diff = {};
-
-    // Loop through the new profile and compare to the old profile
-    for (const key of Object.keys(newProfile)) {
-        for (const elem of Object.keys(newProfile[key])) {
-            // console.log(">>comparator.js@compareStats: (lvl 2 forloop)", "Key : ", key, "Element : ", elem);
-            diff[key] = oldProfile[key]; //Setting up the output object
-            for (const nestedKey in oldProfile[key][elem]) {
-                diff[key][elem] = oldProfile[key][elem]; //Setting up the output object
-                //console.log(">>comparator.js@compareStats: (lvl 3 forloop) ","Nested key : ", nestedKey);
-
-                if (oldProfile[key][elem][nestedKey] !== newProfile[key][elem][nestedKey]) {
-                    //Value is different, add the difference to the diff object
-                    diff[key][elem][nestedKey] = newProfile[key][elem][nestedKey] - oldProfile[key][elem][nestedKey];
-                } else {
-                    //Value is the same, add it to the diff object with a value of 0
-                    diff[key][elem][nestedKey] = 0;
-                }
-            }
-        }
-    }
-    // Return the diff object
-    return diff;
-}
-
-async function compareStats2(teamName, playerName) {
     // Fetch the two profiles and compare them
     const oldProfile = await fetchCachedStats(teamName, playerName, 'before_event');
     const newProfile = await fetchCachedStats(teamName, playerName, 'after_event');
@@ -433,72 +393,7 @@ function convertToOsrsNumber(number) {
     }
 }
 
-// const output = await compareStats2('Zulrah Zoomers', 'R elate');
-// console.log(output);
-// console.log(typeof output["skills"])
-// const test = output["bosses"]
-// delete test[Object.keys(test)[0]];
-// const totalBosses = Object.values(test).reduce((sum, obj) => sum + obj.kills, 0);
-// console.log(totalBosses.toLocaleString());
-
-// createImage('Zulrah Zoomers', 'R elate', 'test1.png');
-createImage('Zulrah Zoomers', 'DaMan2600', 'test2.png');
-// createImage('Bandos Boomers', 'philistine1', 'test1.png');
-
-// console.log(convertToOsrsNumber(92882));
-
-// const stats = await getHiscores('R elate');
-// console.log(stats);
+createImage('Zulrah Zoomers', 'DaMan2600', 'test1.png');
+// createImages()
 
 // statsSetup(true);
-
-const oldProfile = {
-    "skills": {
-        "attack": { "rank": 103411, "level": 99, "xp": 17012567 },
-        "defence": { "rank": 69520, "level": 99, "xp": 16847737 },
-        "strength": { "rank": 12961, "level": 99, "xp": 57847661 }
-    },
-    "bosses": {
-        "abyssalSire": { "rank": 39744, "kills": 533 },
-        "alchemicalHydra": { "rank": 64022, "kills": 763 },
-        "barrowsChests": { "rank": 222248, "kills": 201 }
-    }
-};
-
-const newProfile = {
-    "skills": {
-        "attack": { "rank": 105373, "level": 99, "xp": 17163175 },
-        "defence": { "rank": 63609, "level": 99, "xp": 17488901 },
-        "strength": { "rank": 12014, "level": 99, "xp": 62828787 }
-    },
-    "bosses": {
-        "abyssalSire": { "rank": 41724, "kills": 533 },
-        "alchemicalHydra": { "rank": 62696, "kills": 830 },
-        "artio": { "rank": 25278, "kills": 64 },
-        "barrowsChests": { "rank": 196144, "kills": 241 }
-    }
-};
-
-function getObjectDifference(oldObj, newObj) {
-    // Look at each category in new object. This should be "skills, minigames, and bosses"
-    for (let category in newObj) {
-        for (let section in newObj[category]) {
-
-            // If there exists a category with the same name in old object...
-            if (Object.keys(oldObj[category]).includes(section)) {
-                console.log('I am here.');
-
-                // Look at each subKey (for the "skills" category, this is "rank, level, and xp")
-                for (let subKey in newObj[category][section]) {
-                    // Subtract the oldObjects value for this subKey from the current value
-                    newObj[category][section][subKey] -= oldObj[category][section][subKey];
-                }
-            }
-        }
-    }
-    // console.log('-----------------------');
-    return newObj;
-}
-
-// const result = await compareStats2('Zulrah Zoomers', 'R elate')
-// console.log(result);
