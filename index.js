@@ -83,6 +83,7 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
     const height = 2500;
     const canvas = Canvas.createCanvas(width, height);
     const context = canvas.getContext('2d');
+    let yPos = 0;
 
     let background = await Canvas.loadImage('./resources/decoration/background.png');
     const pattern = context.createPattern(background, 'repeat-y');
@@ -179,6 +180,25 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
         return array;
     }
 
+    async function printElements(ctx, numColumns, sortedThing, key, xPos, xOffset, yOffset, scale) {
+        let count = 0;
+        let modCount = 0;
+        for (let item of sortedThing) {
+            for (let i = 0; i < numColumns; i++) {
+                if (count % numColumns == 0) {
+                    yPos += yOffset;
+                    modCount = 0;
+                } else if (count % numColumns == modCount) {
+                    xPos += xOffset * modCount;
+                }
+
+                count++;
+                modCount++;
+            }
+            await drawBossElement(ctx, item.name, item[key], xPos, yPos, scale);
+        }
+    }
+
     // ===== title card =====
     context.textAlign = 'center';
     context.textBaseline = 'middle';
@@ -203,7 +223,7 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
     let skillsTitleOrigin = { x: titleOrigin.x, y: welcome_messageOrigin.y + 100 };
     fillTextDropShadow(context, 'Skills', skillsTitleOrigin.x, skillsTitleOrigin.y, Colors.White);
 
-    let yPos = skillsTitleOrigin.y + 100;
+    yPos = skillsTitleOrigin.y + 100;
     const skills = statsDelta["skills"];
     const sortedSkills = sortSection(skills, 'xp')
     sortedSkills.shift(); // Remove the "overall" xp, since this will be calculated later
@@ -271,6 +291,7 @@ async function createImage(team_name, rsn, destination = `./images/${team_name}/
 
         await drawBossElement(context, boss.name, boss.kills, xPos, yPos, 0.7);
     }
+    // await printElements(context, 4, sortedBosses, 'kills', 5, 5, 5, 0.7);
 
     context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos + 90);
 
