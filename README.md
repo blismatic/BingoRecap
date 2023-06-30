@@ -1,5 +1,6 @@
 ## Prerequisites
 
+This project runs on Node.js, which you can download [here](https://nodejs.org/en)
 Before anything else, run this command to make sure you have all the required dependencies
 
 ```bash
