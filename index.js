@@ -58,7 +58,7 @@ async function statsSetup(isAfterEvent) {
 
 }
 
-function createImages() {
+async function createImages() {
     // if it doesn't already exist...
     // make a folder in ./images/ for each team, with the name of the folder being the name of the team
     const imagesDir = path.join(__dirname, 'images');
@@ -68,21 +68,25 @@ function createImages() {
         if (!existsSync(teamDir)) { mkdirSync(teamDir, { recursive: true }); } // create each teams folder if it does not exist.
     }
 
-
-
-    // for each player, generate their own image
+    // for each player, generate their own image. Generate one image for the entire team
     for (let teamIndex = 0; teamIndex < config.teams.length; teamIndex++) {
         const team = config.teams[teamIndex];
+
+        let allPlayersStats = [];
+
         for (let playerIndex = 0; playerIndex < team.members.length; playerIndex++) {
             const player = team.members[playerIndex];
-            createImage(team.name, player);
+            const statsDelta = await compareStats(team.name, player);
+            createImage(team.name, player, statsDelta);
+
+            allPlayersStats.push(statsDelta);
         }
+
+        createImage(team.name, team.name, combineObjects(allPlayersStats), `./images/${team.name}/${team.name}.png`);
     }
 }
 
-async function createImage(team_name, rsn, destination = `./images/${team_name}/${rsn}.png`) {
-    const statsDelta = await compareStats(team_name, rsn)
-
+async function createImage(team_name, rsn, statsDelta, destination = `./images/${team_name}/${rsn}.png`) {
     // ===== canvas setup =====
     const width = 1080;
     const height = 15000; // This is extremely large on purpose. It will be trimmed to the correct height at the end.
@@ -401,7 +405,33 @@ function convertToOsrsNumber(number) {
     }
 }
 
-// createImage('Zulrah Zoomers', 'DaMan2600', 'test1.png');
+function combineObjects(objects) {
+    let result = {};
+
+    objects.forEach(object => {
+        for (let mainKey in object) { // mainKey will be "skills", "minigames", "bosses"
+            if (!result[mainKey]) {
+                result[mainKey] = {};
+            }
+            for (let subKey in object[mainKey]) { // subKey will be "attack", "defence", "clueScrollsEasy", "callisto", "cerberus", etc...
+                if (!result[mainKey][subKey]) {
+                    result[mainKey][subKey] = {};
+                }
+                for (let innerKey in object[mainKey][subKey]) { // innerKey will be "rank", "level", "xp", "score", "kills"
+                    if (!result[mainKey][subKey][innerKey]) {
+                        result[mainKey][subKey][innerKey] = 0;
+                    }
+                    result[mainKey][subKey][innerKey] += Number(object[mainKey][subKey][innerKey]);
+                }
+            }
+        }
+    });
+
+    return result;
+}
+
+// const statsDelta = await compareStats('Zulrah Zoomers', 'DaMan2600');
+// createImage('Zulrah Zoomers', 'DaMan2600', statsDelta, 'test1.png');
 createImages()
 
 // statsSetup(true);
