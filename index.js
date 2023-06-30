@@ -4,6 +4,8 @@ import Canvas, { GlobalFonts } from '@napi-rs/canvas';
 import { promises, existsSync, mkdirSync, readFileSync, exists } from 'fs';
 import path, { join, dirname } from 'path'
 import { fileURLToPath } from 'url';
+import Ajv from 'ajv';
+import cliProgress from 'cli-progress';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -68,7 +70,11 @@ async function createImages() {
         if (!existsSync(teamDir)) { mkdirSync(teamDir, { recursive: true }); } // create each teams folder if it does not exist.
     }
 
-    // for each player, generate their own image. Generate one image for the entire team
+    // for each player, generate their own image. Generate one image for the entire team as well.
+    const bar1 = new cliProgress.SingleBar({ stopOnComplete: true }, cliProgress.Presets.shades_classic);
+    const maxCount = config["teams"].length + config["teams"].reduce((total, team) => total + team["members"].length, 0);
+    let counter = 0;
+    bar1.start(maxCount, counter);
     for (let teamIndex = 0; teamIndex < config.teams.length; teamIndex++) {
         const team = config.teams[teamIndex];
 
@@ -78,12 +84,14 @@ async function createImages() {
             const player = team.members[playerIndex];
             const statsDelta = await compareStats(team.name, player);
             createImage(team.name, player, statsDelta);
-
             allPlayersStats.push(statsDelta);
+            bar1.update(++counter);
         }
 
         createImage(team.name, team.name, combineObjects(allPlayersStats), `./images/${team.name}/${team.name}.png`);
+        bar1.update(++counter);
     }
+    bar1.stop();
 }
 
 async function createImage(team_name, rsn, statsDelta, destination = `./images/${team_name}/${rsn}.png`) {
@@ -114,7 +122,6 @@ async function createImage(team_name, rsn, statsDelta, destination = `./images/$
     }
 
     function shrinkFont(ctx, message, baseSize, padding, alignment, font = 'RuneScape-Quill') {
-        // const exitMessage = config["exit_message"];
         ctx.textAlign = alignment;
         ctx.font = `${baseSize}px ${font}`;
 
@@ -194,26 +201,28 @@ async function createImage(team_name, rsn, statsDelta, destination = `./images/$
     context.textBaseline = 'middle';
     context.font = '143px RuneScape-Quill';
 
-    let titleOrigin = { x: context.canvas.width / 2, y: 50 };
+    let titleOrigin = { x: context.canvas.width / 2, y: yPos += 50 };
     fillTextDropShadow(context, config.title, titleOrigin.x, titleOrigin.y, Colors.Yellow);
 
-    let subtitleOrigin = { x: titleOrigin.x, y: titleOrigin.y + 100 };
+    let subtitleOrigin = { x: titleOrigin.x, y: yPos += 100 };
     fillTextDropShadow(context, config.subtitle, subtitleOrigin.x, subtitleOrigin.y, Colors.Yellow);
 
     context.font = '49px RuneScape-Quill';
-    let welcome_messageOrigin = { x: titleOrigin.x, y: subtitleOrigin.y + 85 };
-    const welcome_message = config.welcome_message.replace('<rsn>', rsn);
+    let welcome_messageOrigin = { x: titleOrigin.x, y: yPos += 85 };
+    let welcome_message = config.welcome_message.replace(/<rsn>/g, rsn);
+    welcome_message = welcome_message.replace(/<team_name>/g, team_name);
+
+    context.font = shrinkFont(context, welcome_message, 49, 100, 'center', 'RuneScape-Quill');
     fillTextDropShadow(context, welcome_message, welcome_messageOrigin.x, welcome_messageOrigin.y, Colors.White);
 
-    context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), welcome_messageOrigin.y + 40);
+    context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos += 40);
 
     // ===== skills card =====
     // Skills title
     context.font = '116px RuneScape-Quill';
-    let skillsTitleOrigin = { x: titleOrigin.x, y: welcome_messageOrigin.y + 100 };
+    let skillsTitleOrigin = { x: titleOrigin.x, y: yPos += 75 };
     fillTextDropShadow(context, 'Skills', skillsTitleOrigin.x, skillsTitleOrigin.y, Colors.White);
 
-    yPos = skillsTitleOrigin.y + 100;
     const skills = statsDelta["skills"];
     const sortedSkills = sortSection(skills, 'xp')
     sortedSkills.shift(); // Remove the "overall" xp, since this will be calculated later
@@ -223,9 +232,9 @@ async function createImage(team_name, rsn, statsDelta, destination = `./images/$
     const totalXp = sortedSkills.reduce((sum, skill) => {
         return sum + Number(skill.xp);
     }, 0);
-    fillTextDropShadow(context, `Total XP Gained: ${totalXp.toLocaleString()}`, context.canvas.width / 2, yPos, Colors.Orange);
+    fillTextDropShadow(context, `Total XP Gained: ${totalXp.toLocaleString()}`, context.canvas.width / 2, yPos += 100, Colors.Orange);
 
-    yPos -= 50;
+    yPos -= 50; // This is necessary otherwise the following elements get pushed further down
     let count = 0;
     for (let skill of sortedSkills) {
         const xp = skill.xp;
@@ -245,7 +254,7 @@ async function createImage(team_name, rsn, statsDelta, destination = `./images/$
     }
     // await printElements(context, 'skills', sortedSkills, 'xp', 3, 150, 270, 100, 0.7);
 
-    context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos + 90);
+    context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos += 90);
 
     // ===== bosses card =====
     const bosses = statsDelta["bosses"];
@@ -254,7 +263,7 @@ async function createImage(team_name, rsn, statsDelta, destination = `./images/$
     // Bosses title
     context.textAlign = 'center';
     context.font = '116px RuneScape-Quill';
-    let bossesTitleOrigin = { x: titleOrigin.x, y: yPos += 150 };
+    let bossesTitleOrigin = { x: titleOrigin.x, y: yPos += 60 };
     fillTextDropShadow(context, 'Bosses', bossesTitleOrigin.x, bossesTitleOrigin.y, Colors.White);
 
     // Bosses subtitle
@@ -265,7 +274,7 @@ async function createImage(team_name, rsn, statsDelta, destination = `./images/$
     fillTextDropShadow(context, `Total Bosses Killed: ${totalBosses.toLocaleString()}`, context.canvas.width / 2, yPos += 100, Colors.Orange);
 
     // for each boss that has seen an increase in kill count, create a bossElement object for them
-    yPos -= 50;
+    yPos -= 50; // This is necessary otherwise the following elements get pushed further down
     count = 0;
     for (let boss of sortedBosses) {
         let xPos = 150;
@@ -285,7 +294,7 @@ async function createImage(team_name, rsn, statsDelta, destination = `./images/$
     }
     // await printElements(context, 'bosses', sortedBosses, 'kills', 4, 150, 200, 100, 0.7);
 
-    context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos + 90);
+    context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos += 90);
 
     // ===== clues card =====
     const minigames = statsDelta["minigames"];
@@ -294,7 +303,7 @@ async function createImage(team_name, rsn, statsDelta, destination = `./images/$
     // Clues title
     context.textAlign = 'center';
     context.font = '116px RuneScape-Quill';
-    let cluesTitleOrigin = { x: titleOrigin.x, y: yPos += 150 };
+    let cluesTitleOrigin = { x: titleOrigin.x, y: yPos += 60 };
     fillTextDropShadow(context, 'Clues', cluesTitleOrigin.x, cluesTitleOrigin.y, Colors.White);
 
     // Clues subtitle
@@ -305,7 +314,7 @@ async function createImage(team_name, rsn, statsDelta, destination = `./images/$
     fillTextDropShadow(context, `Total Caskets Opened: ${totalClues.toLocaleString()}`, context.canvas.width / 2, yPos += 100, Colors.Orange);
 
     // for each clue type that has seen an increase in score, create a clueElement object for them
-    yPos -= 50;
+    yPos -= 50; // This is necessary otherwise the following elements get pushed further down
     count = 0;
     for (let clueType of sortedClues) {
         let xPos = 200;
@@ -323,13 +332,16 @@ async function createImage(team_name, rsn, statsDelta, destination = `./images/$
     }
     // await printElements(context, 'clues', sortedClues, 'score', 3, 200, 250, 100, 0.7);
 
-    context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos + 100);
+    context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos += 100);
 
     // ===== exit card =====
-    const exitMessage = config["exit_message"];
+    let exitMessage = config["exit_message"];
+    exitMessage = exitMessage.replace(/<rsn>/g, rsn);
+    exitMessage = exitMessage.replace(/<team_name>/g, team_name);
+
     context.textAlign = 'center';
     context.font = shrinkFont(context, exitMessage, 100, 150, 'center', 'RuneScape-Quill');
-    let exitTitleOrigin = { x: titleOrigin.x, y: yPos += 150 };
+    let exitTitleOrigin = { x: titleOrigin.x, y: yPos += 50 };
     fillTextDropShadow(context, exitMessage, exitTitleOrigin.x, exitTitleOrigin.y, Colors.Yellow);
 
     const watermarkMessage = 'Generated using https://github.com/blismatic/BingoRecap, message "l.ove" on Discord with any questions'
@@ -352,8 +364,7 @@ async function createImage(team_name, rsn, statsDelta, destination = `./images/$
     } catch (err) {
         console.error(err);
     }
-    // await promises.writeFile(`./images/${team_name}/${rsn}.png`, pngData);
-    await promises.writeFile(destination, pngData)
+    await promises.writeFile(destination, pngData);
 }
 
 async function fetchCachedStats(teamName, playerName, beforeOrAfter) {
@@ -430,8 +441,52 @@ function combineObjects(objects) {
     return result;
 }
 
-// const statsDelta = await compareStats('Zulrah Zoomers', 'DaMan2600');
-// createImage('Zulrah Zoomers', 'DaMan2600', statsDelta, 'test1.png');
-createImages()
+function validateConfigFile() {
+    const schemaData = readFileSync('schema.json');
+    const configData = readFileSync('config.json');
 
-// statsSetup(true);
+    const schema = JSON.parse(schemaData);
+    const config = JSON.parse(configData);
+
+    const ajv = new Ajv();
+    const validate = ajv.compile(schema);
+
+    const isValid = validate(config);
+
+    if (!isValid) {
+        console.error('Invalid config file:', ajv.errorsText(validate.errors));
+        process.exit(1);
+    }
+}
+
+// ----------------------------------------------------
+// Validate the config file
+validateConfigFile()
+
+// Make sure only one argument was provided
+if (process.argv.length != 3) {
+    console.error('Sorry, expected exactly one argument (\'before\', \'after\', or \'images\')');
+    process.exit(1);
+}
+
+// Make sure the one argument provided was either 'before', 'after', or 'images'
+if (!['before', 'after', 'images'].includes(process.argv[2])) {
+    console.error('Sorry, argument must be either \'before\', \'after\', or \'images\'');
+    process.exit(1);
+}
+
+// Run specific commands based on which argument was provided
+if (process.argv[2] == 'before') {
+    console.log('Grabbing everyone\'s stats...');
+    statsSetup(0);
+} else if (process.argv[2] == 'after') {
+    console.log('Grabbing everyone\'s stats again...');
+    statsSetup(1);
+    console.log('Generating images...');
+    createImages();
+} else if (process.argv[2] == 'images') {
+    console.log('Generating images...');
+    createImages();
+} else {
+    console.error('Something went wrong...');
+}

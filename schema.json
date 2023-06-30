@@ -1,0 +1,53 @@
+{
+    "type": "object",
+    "properties": {
+        "title": {
+            "type": "string",
+            "description": "This is the text that will appear on the first line of each image."
+        },
+        "subtitle": {
+            "type": "string",
+            "description": "This is the text that will appear on the second line of each image."
+        },
+        "welcome_message": {
+            "type": "string",
+            "description": "This will appear beneath the subtitle. All instances of <rsn> and <team_name>, if provided, will be replaced with the actual username and team name."
+        },
+        "exit_message": {
+            "type": "string",
+            "description": "This will appear at the end of the image. All instances of <rsn> and <team_name>, if provided, will be replaced with the actual username and team name."
+        },
+        "teams": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The name of the team."
+                    },
+                    "members": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "description": "The name of each member of the team."
+                        }
+                    }
+                },
+                "required": [
+                    "name",
+                    "members"
+                ]
+            },
+            "description": "This is an array where each element is an object that lists the name of the team and it's respective members. If there are no teams for this event, put everyone on a single team and name it whatever you want."
+        }
+    },
+    "required": [
+        "title",
+        "subtitle",
+        "welcome_message",
+        "exit_message",
+        "teams"
+    ],
+    "additionalProperties": false
+}
