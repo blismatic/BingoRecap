@@ -126,7 +126,7 @@ async function createImage(team_name, rsn, statsDelta, destination = `./images/$
         ctx.font = `${baseSize}px ${font}`;
 
         while (ctx.measureText(message).width > canvas.width - padding) {
-            ctx.font = `${baseSize -= 5}px ${font}`;
+            ctx.font = `${baseSize -= 1}px ${font}`;
         }
 
         return ctx.font;
@@ -202,9 +202,11 @@ async function createImage(team_name, rsn, statsDelta, destination = `./images/$
     context.font = '143px RuneScape-Quill';
 
     let titleOrigin = { x: context.canvas.width / 2, y: yPos += 50 };
+    context.font = shrinkFont(context, config.title, 143, 150, 'center', 'RuneScape-Quill');
     fillTextDropShadow(context, config.title, titleOrigin.x, titleOrigin.y, Colors.Yellow);
 
     let subtitleOrigin = { x: titleOrigin.x, y: yPos += 100 };
+    context.font = shrinkFont(context, config.subtitle, 125, 150, 'center', 'RuneScape-Quill');
     fillTextDropShadow(context, config.subtitle, subtitleOrigin.x, subtitleOrigin.y, Colors.Yellow);
 
     context.font = '49px RuneScape-Quill';

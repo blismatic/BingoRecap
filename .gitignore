@@ -1,3 +1,7 @@
+# Don't need to see images or stats every single time
+images/
+stats/
+
 # Logs
 logs
 *.log
