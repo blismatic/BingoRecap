@@ -12,13 +12,13 @@ Open `./config.json` with your favorite text editor and configure your event. Se
 
 ## How to use
 
-Run this command once before the event to save everyones hiscore data
+Run this command once before the event to save everyones hiscore data in `./stats/before_event/`
 
 ```bash
 node . before
 ```
 
-After the event is over, run this command to save a new copy of everyones hiscore data and generate images
+After the event is over, run this command to save a new copy of everyones hiscore data in `./stats/after_event/` and generate images
 
 ```bash
 node . after
