@@ -366,6 +366,7 @@ async function createImage(team_name, rsn, statsDelta, drops = undefined, destin
 
     // ===== drops card =====
     if (drops !== undefined) {
+        drops.sort((a, b) => b.number - a.number);
         // Drops title
         context.textAlign = 'center';
         context.font = '116px RuneScape-Quill';
@@ -379,32 +380,35 @@ async function createImage(team_name, rsn, statsDelta, drops = undefined, destin
         }, 0);
         fillTextDropShadow(context, `Total Drops received: ${totalDrops.toLocaleString()}`, context.canvas.width / 2, yPos += 100, Colors.Orange);
 
-        // Drops sub subtitle
-        context.font = '50px RuneScape-Quill';
-        const totalGp = drops.reduce((sum, drop) => {
-            return sum + Number(drop.gp);
-        }, 0);
-        fillTextDropShadow(context, `Estimated GP earned: ${convertToOsrsNumber(totalGp)}`, context.canvas.width / 2, yPos += 50, Colors.Yellow);
-
         // for each drop, create a drawElement object for them
         yPos -= 50; // This is necessary otherwise the following elements get pushed further down
         count = 0;
         for (let drop of drops) {
-            let xPos = 200;
-            let xOffset = 250;
-            if (count % 3 == 0) {
+            let xPos = 150;
+            let xOffset = 200;
+            if (count % 4 == 0) {
                 yPos += 100;
-            } else if (count % 3 == 1) {
+            } else if (count % 4 == 1) {
                 xPos += xOffset;
-            } else if (count % 3 == 2) {
+            } else if (count % 4 == 2) {
                 xPos += xOffset * 2;
+            } else if (count % 4 == 3) {
+                xPos += xOffset * 3;
             }
             count++;
 
             await drawElement(context, 'items', drop.itemName, drop.number, xPos, yPos, 0.7);
         }
 
-        context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos += 90);
+        // Drops sub subtitle
+        context.textAlign = 'center';
+        context.font = '50px RuneScape-Quill';
+        const totalGp = drops.reduce((sum, drop) => {
+            return sum + Number(drop.gp);
+        }, 0);
+        fillTextDropShadow(context, `Estimated GP earned: ${convertToOsrsNumber(totalGp)}`, context.canvas.width / 2, yPos += 110, Colors.Yellow);
+
+        context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos += 50);
     }
 
 
@@ -604,10 +608,6 @@ function parseXlsxToJSON(file) {
     const myObj = { teams: Object.values(teams), possibleItems: possibleItems };
     return myObj;
 }
-
-// // createImages('book.xlsx');
-// createImages();
-
 
 // ----------------------------------------------------
 // Validate the config file
