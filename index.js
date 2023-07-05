@@ -6,6 +6,7 @@ import path, { join, dirname } from 'path'
 import { fileURLToPath } from 'url';
 import Ajv from 'ajv';
 import cliProgress from 'cli-progress';
+import xlsx from 'node-xlsx';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -60,7 +61,12 @@ async function statsSetup(isAfterEvent) {
 
 }
 
-async function createImages() {
+async function createImages(spreadsheet = undefined) {
+    let spreadsheetData = ''
+    if (spreadsheet !== undefined) {
+        spreadsheetData = parseXlsxToJSON(spreadsheet);
+    }
+
     // if it doesn't already exist...
     // make a folder in ./images/ for each team, with the name of the folder being the name of the team
     const imagesDir = path.join(__dirname, 'images');
@@ -77,24 +83,34 @@ async function createImages() {
     bar1.start(maxCount, counter);
     for (let teamIndex = 0; teamIndex < config.teams.length; teamIndex++) {
         const team = config.teams[teamIndex];
+        if (spreadsheet) {
+            var teamSpreadsheetData = spreadsheetData['teams'][spreadsheetData['teams'].findIndex(t => t.name === team.name)];
+        }
 
         let allPlayersStats = [];
 
         for (let playerIndex = 0; playerIndex < team.members.length; playerIndex++) {
             const player = team.members[playerIndex];
             const statsDelta = await compareStats(team.name, player);
-            createImage(team.name, player, statsDelta);
+            if (spreadsheet) {
+                var playerDrops = teamSpreadsheetData['members'][teamSpreadsheetData['members'].findIndex(p => p.playerName === player)]['drops'];
+            }
+            createImage(team.name, player, statsDelta, playerDrops);
             allPlayersStats.push(statsDelta);
             bar1.update(++counter);
         }
 
-        createImage(team.name, team.name, combineObjects(allPlayersStats), `./images/${team.name}/${team.name}.png`);
+        if (spreadsheet) {
+            var teamDrops = teamSpreadsheetData['totalDrops'];
+        }
+
+        createImage(team.name, team.name, combineObjects(allPlayersStats), teamDrops, `./images/${team.name}/${team.name}.png`);
         bar1.update(++counter);
     }
     bar1.stop();
 }
 
-async function createImage(team_name, rsn, statsDelta, destination = `./images/${team_name}/${rsn}.png`) {
+async function createImage(team_name, rsn, statsDelta, drops = undefined, destination = `./images/${team_name}/${rsn}.png`) {
     // ===== canvas setup =====
     const width = 1080;
     const height = 15000; // This is extremely large on purpose. It will be trimmed to the correct height at the end.
@@ -173,13 +189,25 @@ async function createImage(team_name, rsn, statsDelta, destination = `./images/$
     }
 
     async function drawElement(ctx, folder, itemName, itemKey, x, y, scale = 1) {
-        const possibleFolders = ['bosses', 'clues', 'skills'];
+        const possibleFolders = ['bosses', 'clues', 'skills', 'items'];
         if (!possibleFolders.includes(folder)) {
             console.log(`Sorry, I can\'t accept ${folder} as a folder name...`);
         }
 
         // For bosses and clues, the suffix appeneded to the number should be kc. Otherwise, xp.
-        let suffix = (folder == 'skills') ? 'xp' : 'kc';
+        // let suffix = (folder == 'skills') ? 'xp' : 'kc';
+        let prefix = '+';
+        let suffix = '';
+        if (folder == 'skills') {
+            suffix = 'xp';
+        } else if (folder == 'items') {
+            prefix = 'x';
+            suffix = '';
+        } else if (folder == 'bosses' || folder == 'clues') {
+            suffix = 'kc';
+        } else {
+            console.log('Something went horribly wrong');
+        }
 
         const fontSize = 60 * scale;
         ctx.font = `${fontSize}px RuneScape-Quill`;
@@ -188,7 +216,7 @@ async function createImage(team_name, rsn, statsDelta, destination = `./images/$
             const image = await Canvas.loadImage(`./resources/${folder}/${itemName}.png`);
             ctx.drawImage(image, x, y, image.width * scale, image.height * scale);
             const textOrigin = { x: x + (image.width * scale) + 10, y: y + (image.height / 2) * scale };
-            fillTextDropShadow(ctx, `+${convertToOsrsNumber(itemKey)} ${suffix}`, textOrigin.x, textOrigin.y, Colors.Green);
+            fillTextDropShadow(ctx, `${prefix}${convertToOsrsNumber(itemKey)} ${suffix}`, textOrigin.x, textOrigin.y, Colors.Green);
         } catch (err) {
             console.log(`./resources/${folder}/${itemName}.png probably does not exist.`);
             console.log(err);
@@ -336,6 +364,50 @@ async function createImage(team_name, rsn, statsDelta, destination = `./images/$
 
     context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos += 100);
 
+    // ===== drops card =====
+    if (drops !== undefined) {
+        // Drops title
+        context.textAlign = 'center';
+        context.font = '116px RuneScape-Quill';
+        let dropsTitleOrigin = { x: titleOrigin.x, y: yPos += 60 };
+        fillTextDropShadow(context, 'Drops', dropsTitleOrigin.x, dropsTitleOrigin.y, Colors.White);
+
+        // Drops subtitle
+        context.font = '60px RuneScape-Quill';
+        const totalDrops = drops.reduce((total, drop) => {
+            return total + Number(drop.number);
+        }, 0);
+        fillTextDropShadow(context, `Total Drops received: ${totalDrops.toLocaleString()}`, context.canvas.width / 2, yPos += 100, Colors.Orange);
+
+        // Drops sub subtitle
+        context.font = '50px RuneScape-Quill';
+        const totalGp = drops.reduce((sum, drop) => {
+            return sum + Number(drop.gp);
+        }, 0);
+        fillTextDropShadow(context, `Estimated GP earned: ${convertToOsrsNumber(totalGp)}`, context.canvas.width / 2, yPos += 50, Colors.Yellow);
+
+        // for each drop, create a drawElement object for them
+        yPos -= 50; // This is necessary otherwise the following elements get pushed further down
+        count = 0;
+        for (let drop of drops) {
+            let xPos = 200;
+            let xOffset = 250;
+            if (count % 3 == 0) {
+                yPos += 100;
+            } else if (count % 3 == 1) {
+                xPos += xOffset;
+            } else if (count % 3 == 2) {
+                xPos += xOffset * 2;
+            }
+            count++;
+
+            await drawElement(context, 'items', drop.itemName, drop.number, xPos, yPos, 0.7);
+        }
+
+        context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos += 90);
+    }
+
+
     // ===== exit card =====
     let exitMessage = config["exit_message"];
     exitMessage = exitMessage.replace(/<rsn>/g, rsn);
@@ -413,8 +485,12 @@ function convertToOsrsNumber(number) {
         return number.toLocaleString();
     } else if (number < 1000000) {
         return (number / 1000).toFixed(number < 100000 ? 2 : 1) + 'k';
-    } else {
+    } else if (number < 1000000000) {
         return (number / 1000000).toFixed(number < 100000000 ? 2 : 1) + 'm';
+    } else if (number < 1000000000000) {
+        return (number / 1000000000).toFixed(number < 100000000000 ? 2 : 1) + 'b';
+    } else {
+        return (number / 1000000000000).toFixed(number < 100000000000000 ? 2 : 1) + 't';
     }
 }
 
@@ -461,21 +537,101 @@ function validateConfigFile() {
     }
 }
 
+function parseXlsxToJSON(file) {
+    const workSheetsFromFile = xlsx.parse(`${__dirname}/${file}`);
+    const rawArray = workSheetsFromFile[0]['data'];
+
+    const teams = {};
+    const playerNames = rawArray[1].slice(2);
+    const possibleItems = [];
+
+    rawArray[0].slice(2).forEach((team, i) => {
+        if (!team) return;
+        if (!teams[team]) {
+            teams[team] = {
+                name: team,
+                members: []
+            };
+        }
+
+        const player = {
+            playerName: playerNames[i],
+            drops: [],
+        };
+
+        for (let j = 2; j < rawArray.length; j++) {
+            const drop = {
+                itemName: rawArray[j][0],
+                number: rawArray[j][i + 2],
+                gp: rawArray[j][1] * rawArray[j][i + 2]
+            };
+
+            if ((!isNaN(drop.number)) && (drop.number > 0)) {
+                player.drops.push(drop);
+            }
+
+            if (i == 0) {
+                const item = {
+                    name: rawArray[j][0],
+                    price: rawArray[j][1]
+                };
+
+                possibleItems.push(item);
+            }
+        }
+
+        teams[team].members.push(player);
+    });
+
+    let myTeams = Object.values(teams);
+    myTeams.forEach((team) => {
+        const sums = {};
+
+        team.members.forEach((member) => {
+            member.drops.forEach((drop) => {
+                if (!sums[drop.itemName]) {
+                    sums[drop.itemName] = { itemName: drop.itemName, number: 0, gp: 0 };
+                }
+
+                sums[drop.itemName].number += drop.number;
+                sums[drop.itemName].gp += drop.gp;
+            });
+        });
+
+        team.totalDrops = Object.values(sums);
+    });
+
+    const myObj = { teams: Object.values(teams), possibleItems: possibleItems };
+    return myObj;
+}
+
+// // createImages('book.xlsx');
+// createImages();
+
+
 // ----------------------------------------------------
 // Validate the config file
 validateConfigFile()
 
-// Make sure only one argument was provided
-if (process.argv.length != 3) {
-    console.error('Sorry, expected exactly one argument (\'before\', \'after\', or \'images\')');
+// Make sure at most 2 arguments were provided
+if ((2 >= process.argv.length) || (process.argv.length > 4)) {
+    console.error('Sorry, expected either one or two arguments <\'before\'/\'after\'/\'images\'> <spreadsheet>');
     process.exit(1);
 }
 
-// Make sure the one argument provided was either 'before', 'after', or 'images'
+// Make sure the first argument provided was either 'before', 'after', or 'images'
 if (!['before', 'after', 'images'].includes(process.argv[2])) {
-    console.error('Sorry, argument must be either \'before\', \'after\', or \'images\'');
+    console.error('Sorry, first argument must be either \'before\', \'after\', or \'images\'');
     process.exit(1);
 }
+
+// Make sure the second argument, if provided, ends in '.xlsx'
+if ((process.argv.length == 4) && (!process.argv[3].endsWith('.xlsx'))) {
+    console.error('Sorry, the name of the provided spreadsheet must end in \'.xlsx\'');
+    process.exit(1);
+}
+let isSpreadsheetProvided = process.argv.length == 4 ? true : false;
+let spreadsheetName = process.argv[3]
 
 // Run specific commands based on which argument was provided
 if (process.argv[2] == 'before') {
@@ -485,10 +641,19 @@ if (process.argv[2] == 'before') {
     console.log('Grabbing everyone\'s stats again...');
     statsSetup(1);
     console.log('Generating images...');
-    createImages();
+
+    if (isSpreadsheetProvided) {
+        createImages(spreadsheetName);
+    } else {
+        createImages();
+    }
 } else if (process.argv[2] == 'images') {
     console.log('Generating images...');
-    createImages();
+    if (isSpreadsheetProvided) {
+        createImages(spreadsheetName);
+    } else {
+        createImages();
+    }
 } else {
     console.error('Something went wrong...');
 }

@@ -1,0 +1,169 @@
+{
+    "teams": [
+        {
+            "name": "Zulrah Zoomers",
+            "members": [
+                {
+                    "playerName": "R elate",
+                    "drops": [
+                        {
+                            "itemName": "Magic Fang",
+                            "number": 2
+                        },
+                        {
+                            "itemName": "Tanzanite Fang",
+                            "number": 1
+                        },
+                        {
+                            "itemName": "Uncut Onyx",
+                            "number": 1
+                        },
+                        {
+                            "itemName": "Serpentine Visage",
+                            "number": 2
+                        }
+                    ]
+                },
+                {
+                    "playerName": "Chackram",
+                    "drops": [
+                        {
+                            "itemName": "Magic Fang",
+                            "number": 1
+                        },
+                        {
+                            "itemName": "Tanzanite Fang",
+                            "number": 1
+                        },
+                        {
+                            "itemName": "Uncut Onyx",
+                            "number": 2
+                        },
+                        {
+                            "itemName": "Serpentine Visage",
+                            "number": 1
+                        }
+                    ]
+                },
+                {
+                    "playerName": "DaMan2600",
+                    "drops": [
+                        {
+                            "itemName": "Magic Fang",
+                            "number": 5
+                        },
+                        {
+                            "itemName": "Tanzanite Fang",
+                            "number": 2
+                        },
+                        {
+                            "itemName": "Uncut Onyx",
+                            "number": 3
+                        },
+                        {
+                            "itemName": "Serpentine Visage",
+                            "number": 1
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Bandos Boomers",
+            "members": [
+                {
+                    "playerName": "philistine1",
+                    "drops": [
+                        {
+                            "itemName": "Magic Fang",
+                            "number": 1
+                        }
+                    ]
+                },
+                {
+                    "playerName": "Verrtus",
+                    "drops": [
+                        {
+                            "itemName": "Magic Fang",
+                            "number": 1
+                        },
+                        {
+                            "itemName": "Tanzanite Fang",
+                            "number": 2
+                        },
+                        {
+                            "itemName": "Uncut Onyx",
+                            "number": 1
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Corp Coomers",
+            "members": [
+                {
+                    "playerName": "Conewolf",
+                    "drops": []
+                },
+                {
+                    "playerName": "Guccifi",
+                    "drops": [
+                        {
+                            "itemName": "Magic Fang",
+                            "number": 1
+                        },
+                        {
+                            "itemName": "Tanzanite Fang",
+                            "number": 4
+                        },
+                        {
+                            "itemName": "Uncut Onyx",
+                            "number": 2
+                        },
+                        {
+                            "itemName": "Serpentine Visage",
+                            "number": 3
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Dharok Dilfs",
+            "members": [
+                {
+                    "playerName": "Longclaw700",
+                    "drops": [
+                        {
+                            "itemName": "Magic Fang",
+                            "number": 2
+                        },
+                        {
+                            "itemName": "Uncut Onyx",
+                            "number": 1
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "possibleItems": [
+        {
+            "name": "Magic Fang",
+            "price": 2180431
+        },
+        {
+            "name": "Tanzanite Fang",
+            "price": 2241327
+        },
+        {
+            "name": "Uncut Onyx",
+            "price": 1793806
+        },
+        {
+            "name": "Serpentine Visage",
+            "price": 2255190
+        }
+    ]
+}
