@@ -29,7 +29,8 @@ If provided a properly formatted spreadsheet, the recap images can include a "dr
 - The name in the "Item" column must match exactly with the filename (excluding extension) of the item's image in the `./resources/items/` folder, otherwise the script will crash.
   - For example, if I have the item "Magma mutagen" in my spreadsheet, there *must* exist the file `./resources/items/Magma mutagen.png`
 - In the "Price" column, simply type the gp value of the item (do not include commas or any text before or after the number).
-- An example spreadsheet has been included for you, but as long as your spreadsheet is properly formatted, it can come from anywhere.
+- An example spreadsheet has been included for you, but as long as your spreadsheet is properly formatted, it can come from anywhere. 
+  - To generate a blank spreadsheet based on the `./config.json` file, use `npm run generateSpreadsheet`.
 - Because I don't have the time to include every single item thumbnail in the `./resources/items/` folder, I will leave that up to you to include based on the specific drops that are part of your event.
   - For best results, make sure the item thumbnail dimensions are 100x100 pixels.
 - Make sure that the team names and player names in the spreadsheet match exactly with the team and player names found in the `./config.json` file.
