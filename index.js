@@ -119,6 +119,7 @@ async function createImages(spreadsheet = undefined) {
         createImage(team.name, team.name, combineObjects(allPlayersStats), teamDrops, `./images/Entire Event/${team.name}.png`);
         bar1.update(++counter);
     }
+
     createImage('Entire Event', 'Entire Event', combineObjects(entireEventStats), playerDrops, './images/Entire Event/Entire Event.png');
     bar1.stop();
 }
@@ -480,13 +481,21 @@ async function compareStats(teamName, playerName) {
                     // Look at each subKey (for the "skills" section, this is "rank, level, and xp")
                     for (let subKey in newObj[category][section]) {
                         // If the value of the subKey is '-1' in the oldObject (meaning that the player never killed the boss), dont actually subtract it, since subtracting a negative would create a positive
-                        if (oldObj[category][section][subKey] == '-1') { continue; }
+                        if (oldObj[category][section][subKey] == -1) {
+                            continue;
+                        }
 
                         // Subtract the oldObjects value for this subKey from the current value
                         newObj[category][section][subKey] -= oldObj[category][section][subKey];
+                    }
+                }
 
-                        // Turn it back into a string to stay consistent with the results from calling the osrs-wrapper api
-                        newObj[category][section][subKey] = '' + newObj[category][section][subKey];
+                // For any sections that are -1, just set them to 0.
+                // - - This will catch any cases where the section is new (i.e. DT2 bosses came out)
+                // - - - or when the user wasn't ranked in this section at all
+                for (let subKey in newObj[category][section]) {
+                    if (newObj[category][section][subKey] == -1) {
+                        newObj[category][section][subKey] = 0;
                     }
                 }
             }
@@ -624,7 +633,7 @@ function parseXlsxToJSON(file) {
 
 // ----------------------------------------------------
 // Validate the config file
-validateConfigFile()
+validateConfigFile();
 
 // Make sure at most 2 arguments were provided
 if ((2 >= process.argv.length) || (process.argv.length > 4)) {
