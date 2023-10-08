@@ -1,35 +1,109 @@
 {
-    "title": "My title",
-    "subtitle": "My subtitle",
+    "title": "Bingo 12",
+    "subtitle": "Doce Con Leche",
     "welcome_message": "Hi <rsn>, welcome to your recap.",
     "exit_message": "We hope to see you again soon! You did great on <team_name>",
     "teams": [
         {
-            "name": "Zulrah Zoomers",
+            "name": "Team 1",
             "members": [
+                "a sexual",
+                "Allone",
+                "Alpacawhack",
+                "Avenged6Fold",
+                "Daman2600",
+                "dark metbol",
+                "Datdaxx",
+                "Fortu Nate",
+                "FottsOtts",
+                "fruitmilk0w0",
+                "GRAY SHIRT",
+                "HamJointHank",
+                "hydrowo",
+                "Ice Melody",
+                "iiStarMist",
+                "IronOreAgate",
+                "JadHandsJim",
+                "Lick An Egg",
+                "MaxFry4",
+                "Not Atomik",
+                "Oreastus",
+                "PowerfulPine",
+                "Radini",
+                "Scoti Vaclav",
+                "Sushi Smoker",
+                "ThroatBulger",
+                "Tiste Andi",
+                "Verrtus",
+                "Your Bwana"
+            ]
+        },
+        {
+            "name": "Team 2",
+            "members": [
+                "AeroACutie",
+                "breadlog99",
+                "deanl20",
+                "DexyDean",
+                "DisarmedDrag",
+                "DnDProfessor",
+                "DrBourgeois",
+                "FEMA Camp",
+                "FreeAllie",
+                "Garnat",
+                "IronRodan",
+                "LizLemonade",
+                "MagusChum",
+                "NoBrokiesPhD",
+                "Peepo Femboy",
+                "Peepo Sp00g",
+                "peguwu",
+                "QuantumBane",
                 "R elate",
-                "Chackram",
-                "DaMan2600"
+                "Rosalite",
+                "ShyDryRay",
+                "silly emmy",
+                "Slowxpgamer",
+                "SonPorcupine",
+                "Spooned GG",
+                "Tooth Demon",
+                "Veeena",
+                "Wides",
+                "Zeilex"
             ]
         },
         {
-            "name": "Bandos Boomers",
+            "name": "Team 3",
             "members": [
-                "philistine1",
-                "Verrtus"
-            ]
-        },
-        {
-            "name": "Corp Coomers",
-            "members": [
-                "Conewolf",
-                "Guccifi"
-            ]
-        },
-        {
-            "name": "Dharok Dilfs",
-            "members": [
-                "Longclaw700"
+                "AD 4K",
+                "ajollymystic",
+                "Bob 9of",
+                "BucklerBarry",
+                "DaddyDesert",
+                "Daxter",
+                "DongInspectr",
+                "i jaydoss i",
+                "Imbued Beard",
+                "Jozua of Tul",
+                "kitycat",
+                "longclaw700",
+                "MoleMan-I",
+                "Omni_mage1",
+                "Philliam",
+                "Phnytony",
+                "pugsy50",
+                "Ratret",
+                "Remichi",
+                "Royal_Lear",
+                "saltygorbage",
+                "Sebrie",
+                "ShogunOfSoul",
+                "Shoutpan",
+                "Thala-siren",
+                "TheWissky",
+                "Thundead",
+                "Toe Devil",
+                "wisp wert"
             ]
         }
     ]

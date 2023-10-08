@@ -81,12 +81,17 @@ async function createImages(spreadsheet = undefined) {
         const teamDir = path.join(imagesDir, team.name);
         if (!existsSync(teamDir)) { mkdirSync(teamDir, { recursive: true }); } // create each teams folder if it does not exist.
     }
+    const entireEventDir = path.join(__dirname, 'images', 'Entire Event');
+    if (!existsSync(entireEventDir)) { mkdirSync(entireEventDir, { recursive: true }); } // create the the 'images/Entire Event' folder if it does not exist
 
     // for each player, generate their own image. Generate one image for the entire team as well.
     const bar1 = new cliProgress.SingleBar({ stopOnComplete: true }, cliProgress.Presets.shades_classic);
     const maxCount = config["teams"].length + config["teams"].reduce((total, team) => total + team["members"].length, 0);
     let counter = 0;
     bar1.start(maxCount, counter);
+
+    let entireEventStats = []
+
     for (let teamIndex = 0; teamIndex < config.teams.length; teamIndex++) {
         const team = config.teams[teamIndex];
         if (spreadsheet) {
@@ -103,6 +108,7 @@ async function createImages(spreadsheet = undefined) {
             }
             createImage(team.name, player, statsDelta, playerDrops);
             allPlayersStats.push(statsDelta);
+            entireEventStats.push(statsDelta);
             bar1.update(++counter);
         }
 
@@ -110,9 +116,10 @@ async function createImages(spreadsheet = undefined) {
             var teamDrops = teamSpreadsheetData['totalDrops'];
         }
 
-        createImage(team.name, team.name, combineObjects(allPlayersStats), teamDrops, `./images/${team.name}/${team.name}.png`);
+        createImage(team.name, team.name, combineObjects(allPlayersStats), teamDrops, `./images/Entire Event/${team.name}.png`);
         bar1.update(++counter);
     }
+    createImage('Entire Event', 'Entire Event', combineObjects(entireEventStats), playerDrops, './images/Entire Event/Entire Event.png');
     bar1.stop();
 }
 
