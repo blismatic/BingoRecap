@@ -26,6 +26,12 @@ async function statsSetup(isAfterEvent) {
     const parent_folder_name = 'stats';
     const folder_name = isAfterEvent ? 'after_event' : 'before_event'; // if you want the stats to be saved in ./stats/after_event/ then call statsSetup('true');
     const unique_path = `./${parent_folder_name}/${folder_name}`;
+
+    // Make sure the base 'stats' folder exists
+    if (!existsSync('./stats')) {
+        mkdirSync('./stats')
+    }
+
     try {
         if (!existsSync(unique_path)) {
             mkdirSync(unique_path);
@@ -636,10 +642,10 @@ let spreadsheetName = process.argv[3]
 // Run specific commands based on which argument was provided
 if (process.argv[2] == 'before') {
     console.log('Grabbing everyone\'s stats...');
-    statsSetup(0);
+    await statsSetup(0);
 } else if (process.argv[2] == 'after') {
     console.log('Grabbing everyone\'s stats again...');
-    statsSetup(1);
+    await statsSetup(1);
     console.log('Generating images...');
 
     if (isSpreadsheetProvided) {
