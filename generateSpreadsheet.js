@@ -37,10 +37,11 @@ for (let team of config['teams']) {
 }
 
 // Create the buffer and try to save the file.
+let data = [row1, row2]
+let buffer = xlsx.build([{ name: 'Sheet1', data: data }]);
 try {
     writeFileSync('book.xlsx', buffer);
     console.log(`Success. Generated \'book.xlsx\'`);
-    let buffer = xlsx.build([{ name: 'Sheet1', data: [row1, row2] }]);
 } catch (err) {
     console.log('Error', err);
 }
