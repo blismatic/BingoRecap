@@ -56,7 +56,13 @@ async function statsSetup(isAfterEvent) {
         // Query each member of the team's hiscore data
         for (let memberIndex = 0; memberIndex < team.members.length; memberIndex++) {
             const rsn = team.members[memberIndex];
-            const stats = await getHiscores(rsn);
+            let stats = null
+            try {
+                stats = await getHiscores(rsn);
+            } catch (err) {
+                console.error(`could not find the user ${rsn} on the hiscores. perhaps they changed their name.`)
+                continue
+            }
 
             // Write their data to a unique file
             const unique_path = `./${parent_folder_name}/${folder_name}/${team.name}/${rsn}.json`;
