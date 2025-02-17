@@ -62,3 +62,5 @@ This can be useful if you want to play around with how the `createImage` functio
 ##### Developer notes (ignore this)
 
 Run `npm outdated` and `npm update` to update the `package-lock.json` file, and then run `npm update --save` to update the `package.json` file. Both of these *should* be committed to version control.
+
+Run `npm version <major/minor/patch>` to update and commit a new version.
