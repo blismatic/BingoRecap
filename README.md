@@ -58,3 +58,7 @@ node . images [spreadsheet]
 ```
 
 This can be useful if you want to play around with how the `createImage` function works and want to see the changes after each call.
+
+##### Developer notes (ignore this)
+
+Run `npm outdated` and `npm update` to update the `package-lock.json` file, and then run `npm update --save` to update the `package.json` file. Both of these *should* be committed to version control.
