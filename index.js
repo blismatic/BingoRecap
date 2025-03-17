@@ -60,7 +60,7 @@ async function statsSetup(isAfterEvent) {
             try {
                 stats = await getHiscores(rsn);
             } catch (err) {
-                console.error(`could not find the user ${rsn} on the hiscores. perhaps they changed their name.`)
+                console.error(`could not find the user ${rsn} on the hiscores. perhaps they changed their name. ${err}`)
                 continue
             }
 
