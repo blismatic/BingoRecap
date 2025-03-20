@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import Ajv from 'ajv';
 import cliProgress from 'cli-progress';
 import xlsx from 'node-xlsx';
+import { getAllMVPs } from './mvp.mjs'
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -79,6 +80,9 @@ async function createImages(spreadsheet = undefined) {
         spreadsheetData = parseXlsxToJSON(spreadsheet);
     }
 
+    // Calculate mvp info
+    const mvpInfo = getAllMVPs()
+
     // if it doesn't already exist...
     // make a folder in ./images/ for each team, with the name of the folder being the name of the team
     const imagesDir = path.join(__dirname, 'images');
@@ -91,10 +95,10 @@ async function createImages(spreadsheet = undefined) {
     if (!existsSync(entireEventDir)) { mkdirSync(entireEventDir, { recursive: true }); } // create the the 'images/Entire Event' folder if it does not exist
 
     // for each player, generate their own image. Generate one image for the entire team as well.
-    const bar1 = new cliProgress.SingleBar({ stopOnComplete: true }, cliProgress.Presets.shades_classic);
+    // const bar1 = new cliProgress.SingleBar({ stopOnComplete: true }, cliProgress.Presets.shades_classic);
     const maxCount = config["teams"].length + config["teams"].reduce((total, team) => total + team["members"].length, 0);
     let counter = 0;
-    bar1.start(maxCount, counter);
+    // bar1.start(maxCount, counter);
 
     let entireEventStats = []
 
@@ -112,25 +116,27 @@ async function createImages(spreadsheet = undefined) {
             if (spreadsheet) {
                 var playerDrops = teamSpreadsheetData['members'][teamSpreadsheetData['members'].findIndex(p => p.playerName === player)]['drops'];
             }
-            createImage(team.name, player, statsDelta, playerDrops);
+            createImage(team.name, player, statsDelta, mvpInfo, playerDrops);
             allPlayersStats.push(statsDelta);
             entireEventStats.push(statsDelta);
-            bar1.update(++counter);
+            // bar1.update(++counter);
         }
 
         if (spreadsheet) {
             var teamDrops = teamSpreadsheetData['totalDrops'];
         }
 
-        createImage(team.name, team.name, combineObjects(allPlayersStats), teamDrops, `./images/Entire Event/${team.name}.png`);
-        bar1.update(++counter);
+        createImage(team.name, team.name, combineObjects(allPlayersStats), mvpInfo, teamDrops, `./images/Entire Event/${team.name}.png`);
+        // bar1.update(++counter);
     }
 
-    createImage('Entire Event', 'Entire Event', combineObjects(entireEventStats), playerDrops, './images/Entire Event/Entire Event.png');
-    bar1.stop();
+    createImage('Entire Event', 'Entire Event', combineObjects(entireEventStats), mvpInfo, playerDrops, './images/Entire Event/Entire Event.png');
+    // bar1.stop();
 }
 
-async function createImage(team_name, rsn, statsDelta, drops = undefined, destination = `./images/${team_name}/${rsn}.png`) {
+async function createImage(team_name, rsn, statsDelta, mvpInfo = null, drops = null, destination = `./images/${team_name}/${rsn}.png`) {
+    // console.log(mvpInfo);
+
     // ===== canvas setup =====
     const width = 1080;
     const height = 15000; // This is extremely large on purpose. It will be trimmed to the correct height at the end.
@@ -154,7 +160,6 @@ async function createImage(team_name, rsn, statsDelta, drops = undefined, destin
         // Then draw the actual text
         ctx.fillStyle = colorCode;
         ctx.fillText(text, x, y)
-        // console.log('Success');
     }
 
     function shrinkFont(ctx, message, baseSize, padding, alignment, font = 'RuneScape-Quill') {
@@ -196,9 +201,7 @@ async function createImage(team_name, rsn, statsDelta, drops = undefined, destin
             for (let i = 1; i < numColumns; i++) {
                 if (count % numColumns == 0) {
                     yPos += yOffset;
-                    // console.log('i am here 0');
                 } else if (count % numColumns == i) {
-                    // console.log('i am here ' + i);
                     xPos2 += xOffset * i;
                 }
             }
@@ -208,7 +211,7 @@ async function createImage(team_name, rsn, statsDelta, drops = undefined, destin
         }
     }
 
-    async function drawElement(ctx, folder, itemName, itemKey, x, y, scale = 1) {
+    async function drawElement(ctx, folder, itemName, itemKey, x, y, scale = 1, mvpStatus = null) {
         const possibleFolders = ['bosses', 'clues', 'skills', 'items'];
         if (!possibleFolders.includes(folder)) {
             console.log(`Sorry, I can\'t accept ${folder} as a folder name...`);
@@ -235,6 +238,16 @@ async function createImage(team_name, rsn, statsDelta, drops = undefined, destin
         try {
             const image = await Canvas.loadImage(`./resources/${folder}/${itemName}.png`);
             ctx.drawImage(image, x, y, image.width * scale, image.height * scale);
+            if (mvpStatus != null) {
+                let mvp_image;
+                if (mvpStatus == "team") {
+                    mvp_image = await Canvas.loadImage(`./resources/decoration/mvp-team.png`);
+                } else if (mvpStatus == "event") {
+                    mvp_image = await Canvas.loadImage(`./resources/decoration/mvp-event.png`);
+                }
+                ctx.drawImage(mvp_image, x + 40, y - 15, image.width * scale * 0.5, image.height * scale * 0.5);
+                // x + 40, y - 20
+            }
             const textOrigin = { x: x + (image.width * scale) + 10, y: y + (image.height / 2) * scale };
             fillTextDropShadow(ctx, `${prefix}${convertToOsrsNumber(itemKey)} ${suffix}`, textOrigin.x, textOrigin.y, Colors.Green);
         } catch (err) {
@@ -275,7 +288,7 @@ async function createImage(team_name, rsn, statsDelta, drops = undefined, destin
 
     const skills = statsDelta["skills"];
     const sortedSkills = sortSection(skills, 'xp')
-    sortedSkills.shift(); // Remove the "overall" xp, since this will be calculated later
+    sortedSkills.shift(); // Remove the "overall" xp, since this will be calculated differently
 
     // Skills subtitle
     context.font = '60px RuneScape-Quill';
@@ -300,7 +313,18 @@ async function createImage(team_name, rsn, statsDelta, drops = undefined, destin
         }
         count++;
 
-        await drawElement(context, 'skills', skill.name, skill.xp, xPos, yPos, 0.7);
+        // Conditionally add in the mvp status, if one exists.
+        let mvpStatus = null;
+        if (mvpInfo != null && mvpInfo['skills'][skill.name].includes(rsn)) {
+            if (mvpInfo['skills'][skill.name][0] === rsn) {
+                mvpStatus = 'event'
+            } else {
+                mvpStatus = 'team';
+            }
+            // console.log(`${mvpStatus}, ${rsn}, ${skill.name}`)
+        }
+
+        await drawElement(context, 'skills', skill.name, skill.xp, xPos, yPos, 0.7, mvpStatus);
     }
     // await printElements(context, 'skills', sortedSkills, 'xp', 3, 150, 270, 100, 0.7);
 
@@ -340,7 +364,17 @@ async function createImage(team_name, rsn, statsDelta, drops = undefined, destin
         }
         count++;
 
-        await drawElement(context, 'bosses', boss.name, boss.kills, xPos, yPos, 0.7);
+        // Conditionally add in the mvp status, if one exists.
+        let mvpStatus = null;
+        if (mvpInfo != null && mvpInfo['bosses'][boss.name].includes(rsn)) {
+            if (mvpInfo['bosses'][boss.name][0] === rsn) {
+                mvpStatus = 'event'
+            } else {
+                mvpStatus = 'team';
+            }
+        }
+
+        await drawElement(context, 'bosses', boss.name, boss.kills, xPos, yPos, 0.7, mvpStatus);
     }
     // await printElements(context, 'bosses', sortedBosses, 'kills', 4, 150, 200, 100, 0.7);
 
@@ -378,14 +412,28 @@ async function createImage(team_name, rsn, statsDelta, drops = undefined, destin
         }
         count++;
 
-        await drawElement(context, 'clues', clueType.name, clueType.score, xPos, yPos, 0.7);
+        // Conditionally add in the mvp status, if one exists.
+        let mvpStatus = null;
+        if (mvpInfo != null && mvpInfo['minigames'][clueType.name].includes(rsn)) {
+            if (mvpInfo['minigames'][clueType.name][0] === rsn) {
+                mvpStatus = 'event'
+            } else {
+                mvpStatus = 'team';
+            }
+            // console.log(`${mvpStatus}, ${rsn}, ${skill.name}`)
+        }
+
+        await drawElement(context, 'clues', clueType.name, clueType.score, xPos, yPos, 0.7, mvpStatus);
     }
     // await printElements(context, 'clues', sortedClues, 'score', 3, 200, 250, 100, 0.7);
 
     context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos += 100);
 
     // ===== drops card =====
-    if (drops !== undefined) {
+    if (drops != null) {
+        console.log('here1')
+        console.log(`drops = ${drops}, type = ${typeof drops}`)
+        console.log('here2')
         drops.sort((a, b) => b.number - a.number);
         // Drops title
         context.textAlign = 'center';
