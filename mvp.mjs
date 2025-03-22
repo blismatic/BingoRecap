@@ -1,29 +1,6 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import path from 'path'
 
-// const loadJSON = (filePath) => {
-//     try {
-//         const rawData = readFileSync(filePath);
-//         return JSON.parse(rawData);
-//     } catch (error) {
-//         console.error('Error reading or parsing file:', filePath, error)
-//     }
-// }
-
-// const calculateDifference = (beforeData, afterData, category, subcategory) => {
-//     let difference = 0;
-
-//     if (category === "skills") {
-//         difference = afterData.skills[subcategory].xp - beforeData.skills[subcategory].xp;
-//     } else if (category === "minigames") {
-//         difference = afterData.minigames[subcategory].score - beforeData.minigames[subcategory].score;
-//     } else if (category === "bosses") {
-//         difference = afterData.bosses[subcategory].kills - beforeData.bosses[subcategory].kills;
-//     }
-
-//     return difference;
-// }
-
 // Function to get the MVP (best player) for a specific category and subcategory across all teams
 const getSpecificMVPs = (category, subcategory) => {
     const teamNames = readdirSync(path.join('stats', 'before_event'));
@@ -47,7 +24,10 @@ const getSpecificMVPs = (category, subcategory) => {
             // console.log(`${playerName}, ${category}, ${subcategory}, ${datapointsMap[category]}`)
             // console.log(`statsDifferences[${category}][${subcategory}][${datapointsMap[category]}]`);
             // console.log(statsDifferences[category]['dagannothPrime']['kills'])
-            let specificDifference = statsDifferences[category][subcategory][datapointsMap[category]]
+            if (!(Object.keys(statsDifferences[category]).includes(subcategory))) {
+                return; // Skip this iteration of the inner forEach loop
+            }
+            let specificDifference = statsDifferences[category][subcategory][datapointsMap[category]];
 
             // Check if this player has the best difference for this particular thing out of the whole team, so far.
             if (specificDifference > bestDifference) {
@@ -76,7 +56,7 @@ const getAllMVPs = () => {
     const subcategories = {
         skills: ['overall', 'attack', 'defence', 'strength', 'hitpoints', 'ranged', 'prayer', 'magic', 'cooking', 'woodcutting', 'fletching', 'fishing', 'firemaking', 'crafting', 'smithing', 'mining', 'herblore', 'agility', 'thieving', 'slayer', 'farming', 'runecrafting', 'hunter', 'construction'],
         minigames: ['leaguePoints', 'deadmanPoints', 'bountyHunter', 'bountyHunterRogues', 'bountyHunterLegacy', 'bountyHunterRoguesLegacy', 'clueScrollsAll', 'clueScrollsBeginner', 'clueScrollsEasy', 'clueScrollsMedium', 'clueScrollsHard', 'clueScrollsElite', 'clueScrollsMaster', 'lms', 'pvpArena', 'soulWarsZeal', 'riftsClosed', 'colosseumGlory'],
-        bosses: ['abyssalSire', 'alchemicalHydra', 'artio', 'barrowsChests', 'bryophyta', 'callisto', 'calvarion', 'cerberus', 'chambersOfXeric', 'chambersOfXericChallengeMode', 'chaosElemental', 'chaosFanatic', 'commanderZilyana', 'corporealBeast', 'crazyArchaeologist', 'dagannothPrime', 'dagannothRex', 'dagannothSupreme', 'derangedArchaeologist', 'dukeSucellus', 'generalGraardor', 'giantMole', 'grotesqueGuardians', 'hespori', 'kalphiteQueen', 'kingBlackDragon', 'kraken', 'krilTsutsaroth', 'lunarChests', 'mimic', 'nex', 'nightmare', 'phosanisNightmare', 'obor', 'phantomMuspah', 'sarachnis', 'scorpia', 'scurrius', 'skotizo', 'solHeredit', 'spindel', 'tempoross', 'gauntlet', 'corruptedGauntlet', 'leviathan', 'whisperer', 'theatreOfBlood', 'theatreOfBloodHardMode', 'thermonuclearSmokeDevil', 'tombsOfAmascut', 'tombsOfAmascutExpertMode', 'tzKalZuk', 'tzTokJad', 'vardorvis', 'venenatis', 'vetion', 'vorkath', 'wintertodt', 'zalcano', 'zulrah']
+        bosses: ['abyssalSire', 'alchemicalHydra', 'amoxliatl', 'araxxor', 'artio', 'barrowsChests', 'bryophyta', 'callisto', 'calvarion', 'cerberus', 'chambersOfXeric', 'chambersOfXericChallengeMode', 'chaosElemental', 'chaosFanatic', 'commanderZilyana', 'corporealBeast', 'crazyArchaeologist', 'dagannothPrime', 'dagannothRex', 'dagannothSupreme', 'derangedArchaeologist', 'dukeSucellus', 'generalGraardor', 'giantMole', 'grotesqueGuardians', 'hespori', 'kalphiteQueen', 'kingBlackDragon', 'kraken', 'krilTsutsaroth', 'lunarChests', 'mimic', 'nex', 'nightmare', 'phosanisNightmare', 'obor', 'phantomMuspah', 'sarachnis', 'scorpia', 'scurrius', 'skotizo', 'solHeredit', 'spindel', 'tempoross', 'gauntlet', 'corruptedGauntlet', 'hueycoatl', 'leviathan', 'royalTitans', 'whisperer', 'theatreOfBlood', 'theatreOfBloodHardMode', 'thermonuclearSmokeDevil', 'tombsOfAmascut', 'tombsOfAmascutExpertMode', 'tzKalZuk', 'tzTokJad', 'vardorvis', 'venenatis', 'vetion', 'vorkath', 'wintertodt', 'zalcano', 'zulrah']
     };
 
     const allMVPs = {};
@@ -106,6 +86,7 @@ const compareStats = (teamName, playerName) => {
 
     // Look at each category in the new profile. This shouldbe "skills", "minigames", and "bosses"
     for (const category in newProfile) {
+        // and then look at each subcategory. This should be things like "attack", "defence", "clueScrollsEasy", "abyssalSire", etc
         for (const subcategory in newProfile[category]) {
             // If there exists a section with the same name in the oldProfile...
             if (Object.keys(oldProfile[category]).includes(subcategory)) {
