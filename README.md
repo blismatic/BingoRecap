@@ -59,8 +59,18 @@ node . images [spreadsheet]
 
 This can be useful if you want to play around with how the `createImage` function works and want to see the changes after each call.
 
+##### Disclaimer
+
+*Created using intellectual property belonging to Jagex Limited under the terms of Jagex's Fan Content Policy. This content is not endorsed by or affiliated with Jagex.*
+
 ##### Developer notes (ignore this)
 
 Run `npm outdated` and `npm update` to update the `package-lock.json` file, and then run `npm update --save` to update the `package.json` file. Both of these *should* be committed to version control.
 
 Run `npm version <major/minor/patch>` to update and commit a new version.
+
+For runelite cache sprite ID's: visit [here](https://github.com/runelite/runelite/blob/master/runelite-api/src/main/java/net/runelite/api/SpriteID.java)
+
+For runelite cache dump: visit [here](https://github.com/abextm/osrs-cache/releases)
+
+For upscaling and centering those sprites: `ffmpeg -i "<in-file>" -vf "scale=w=100:h=100:force_original_aspect_ratio=decrease:flags=neighbor,pad=100:100:(ow-iw)/2:(oh-ih)/2:color=0x00000000" -frames:v 1 -update 1 "<out-file>"`
