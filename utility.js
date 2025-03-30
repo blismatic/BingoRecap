@@ -1,12 +1,12 @@
 import { readdirSync, existsSync, mkdirSync, statSync } from 'node:fs';
-import exec from 'child_process';
+import { exec } from 'child_process';
 import path from 'node:path';
 import yargs from 'yargs';
 
 
 // const inputDir = './resources/bosses';
 // const outputDir = './resources/bosses';
-const argv = yargs
+const argv = yargs(process.argv.slice(2))
     .option('input', {
         alias: 'i',
         description: 'Path to the input directory',
@@ -113,14 +113,15 @@ const spriteToNameMap = {
 }
 
 readdirSync(argv.input).forEach(file => {
+    const spriteID = path.basename(file, '.png');
     if (path.extname(file).toLowerCase() !== '.png') {
         return;
-    } else if (!Object.keys(spriteToNameMap).includes(path.basename)) {
+    } else if (!Object.keys(spriteToNameMap).includes(spriteID)) {
         return;
     }
 
     const inputPath = path.join(argv.input, file);
-    const outputPath = path.join(argv.output, spriteToNameMap[path.basename]);
+    const outputPath = path.join(argv.output, `${spriteToNameMap[spriteID]}.png`);
 
     const cmd = `ffmpeg -y -i "${inputPath}" -vf "scale=w=100:h=100:force_original_aspect_ratio=decrease:flags=neighbor,pad=100:100:(ow-iw)/2:(oh-ih)/2:color=0x00000000" -frames:v 1 -update 1 "${outputPath}"`;
 
