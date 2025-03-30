@@ -74,3 +74,5 @@ For runelite cache sprite ID's: visit [here](https://github.com/runelite/runelit
 For runelite cache dump: visit [here](https://github.com/abextm/osrs-cache/releases)
 
 For upscaling and centering those sprites: `ffmpeg -i "<in-file>" -vf "scale=w=100:h=100:force_original_aspect_ratio=decrease:flags=neighbor,pad=100:100:(ow-iw)/2:(oh-ih)/2:color=0x00000000" -frames:v 1 -update 1 "<out-file>"`
+
+Batch upscaling + renaming sprite ID's: `node utility.js -i <inputPath> -o <outputPath>`
