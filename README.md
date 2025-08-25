@@ -69,9 +69,9 @@ Run `npm outdated` and `npm update` to update the `package-lock.json` file, and 
 
 Run `npm version <major/minor/patch>` to update and commit a new version.
 
-For runelite cache sprite ID's: visit [here](https://github.com/runelite/runelite/blob/master/runelite-api/src/main/java/net/runelite/api/SpriteID.java)
+For finding runelite cache sprite ID's: visit [here](https://github.com/runelite/runelite/blob/master/runelite-api/src/main/java/net/runelite/api/SpriteID.java)
 
-For runelite cache dump: visit [here](https://github.com/abextm/osrs-cache/releases)
+For downloading runelite cache dump: visit [here](https://github.com/abextm/osrs-cache/releases) (download the `.tar.gz`)
 
 For upscaling and centering those sprites: `ffmpeg -i "<in-file>" -vf "scale=w=100:h=100:force_original_aspect_ratio=decrease:flags=neighbor,pad=100:100:(ow-iw)/2:(oh-ih)/2:color=0x00000000" -frames:v 1 -update 1 "<out-file>"`
 
