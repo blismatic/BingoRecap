@@ -1,5 +1,5 @@
 import { getHiscores } from 'osrs-wrapper';
-import config from './config.json' assert { type: "json" };
+import config from './config.json' with { type: "json" };
 import Canvas, { GlobalFonts } from '@napi-rs/canvas';
 import { promises, existsSync, mkdirSync, readFileSync } from 'fs';
 import path, { join, dirname } from 'path'

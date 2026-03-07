@@ -1,4 +1,4 @@
-import config from './config.json' assert { type: "json" };
+import config from './config.json' with { type: "json" };
 import { readFileSync, writeFileSync } from 'fs';
 import xlsx from 'node-xlsx';
 import Ajv from 'ajv';
