@@ -69,9 +69,13 @@ Run `npm outdated` and `npm update` to update the `package-lock.json` file, and 
 
 Run `npm version <major/minor/patch>` to update and commit a new version.
 
-For finding runelite cache sprite ID's: visit [here](https://github.com/runelite/runelite/blob/master/runelite-api/src/main/java/net/runelite/api/SpriteID.java)
-
-For downloading runelite cache dump: visit [here](https://github.com/abextm/osrs-cache/releases) (download the `.tar.gz`)
+###### To get a new picture from the Hiscores plugin, follow the following steps:
+1. Look at the SpriteID.java file [here](https://github.com/runelite/runelite/blob/master/runelite-api/src/main/java/net/runelite/api/gameval/SpriteID.java) and search for the boss/skill/minigame you want the image for.
+2. Find the mapping that it goes to, for example: `public static final int BRUTUS = _69;`
+3. Scroll up in the same class and find what that mapping is mapped to. For example: `public static final int _69 = 6352;`
+4. Go to the runelite cache viewer [here](https://abextm.github.io/cache2/#/viewer/sprite) and search for that mapping.
+5. You should see the image. Right click and download it or do whatever you want.
+   1. Alternatively, you can download the runelite cache dump (not the source code) [here](https://github.com/abextm/osrs-cache/releases). Once downloaded, open/extract it and go to the `/dump/sprites/` folder and look for the same mapping number. In this example, `6352.png` actually doesn't exist, but `6382.png` does exist. This comes from `6382` being in the SpriteID.java file, but just for the IconBoss50x50 class - which doesn't include the boss names.
 
 For upscaling and centering those sprites: `ffmpeg -i "<in-file>" -vf "scale=w=100:h=100:force_original_aspect_ratio=decrease:flags=neighbor,pad=100:100:(ow-iw)/2:(oh-ih)/2:color=0x00000000" -frames:v 1 -update 1 "<out-file>"`
 

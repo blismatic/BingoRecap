@@ -1,0 +1,1 @@
+- [ ] Change the clues section to be "clues and clogs" and have it include collections logged somehow
