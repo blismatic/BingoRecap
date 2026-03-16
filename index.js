@@ -388,7 +388,7 @@ async function createImage(team_name, rsn, statsDelta, mvpInfo = null, drops = n
     context.textAlign = 'center';
     context.font = '116px RuneScape-Quill';
     let cluesTitleOrigin = { x: titleOrigin.x, y: yPos += 60 };
-    fillTextDropShadow(context, 'Clues', cluesTitleOrigin.x, cluesTitleOrigin.y, Colors.White);
+    fillTextDropShadow(context, 'Clues and Clogs', cluesTitleOrigin.x, cluesTitleOrigin.y, Colors.White);
 
     // Clues subtitle
     context.font = '60px RuneScape-Quill';
@@ -426,6 +426,25 @@ async function createImage(team_name, rsn, statsDelta, mvpInfo = null, drops = n
         await drawElement(context, 'clues', clueType.name, clueType.score, xPos, yPos, 0.7, mvpStatus);
     }
     // await printElements(context, 'clues', sortedClues, 'score', 3, 200, 250, 100, 0.7);
+
+    // ===== Collection logs card =====
+    let collectionLogsScore = 0;
+    if (statsDelta['minigames']['collectionsLogged'] != undefined) {
+        collectionLogsScore = statsDelta['minigames']['collectionsLogged']['score'];
+    }
+    if (collectionLogsScore > 0) {
+        yPos += 100;
+        let xPos = 200;
+        let mvpStatus = null;
+        if (mvpInfo != null && mvpInfo['minigames']['collectionsLogged'].includes(rsn)) {
+            if (mvpInfo['minigames']['collectionsLogged'][0] === rsn) {
+                mvpStatus = 'event'
+            } else {
+                mvpStatus = 'team';
+            }
+        }
+        await drawElement(context, 'clues', 'collectionsLogged', statsDelta['minigames']['collectionsLogged']['score'], xPos, yPos, 0.7, mvpStatus);
+    }
 
     context.drawImage(dividerImg, (canvas.width / 2) - (dividerImg.width / 2), yPos += 100);
 
